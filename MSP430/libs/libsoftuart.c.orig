@@ -1,0 +1,175 @@
+#include <msp430.h>
+#include "softuart.h"
+#include "misc.h"
+#include "fifo.h"
+
+#define BIT_TIME 104
+#define PTX   BIT2
+#define PRX   BIT1
+#define CCTL  TACCTL0
+#define CCR0   TACCR0 // For TX
+#define CCR1   TACCR1 // For RX
+#define INTID TIMER0_A0_VECTOR 
+
+
+inline void enable_timer();
+inline void disable_timer();
+
+static FIFO tx_uart_fifo;
+static FIFO rx_uart_fifo;
+word tx_byte;
+byte tx_bit_count;
+word rx_byte;
+byte rx_bit_count;
+
+
+void softuart_init() {
+  // DEBUG
+  P1DIR = BIT0 + BIT6;
+  P1OUT &= ~(BIT0 + BIT6);
+
+  // Make P1.2 output (TX)
+  P1DIR  |= PTX;
+
+  // Make P1.1 input (RX)
+  P1DIR &= ~PRX;
+
+  // Set interupt on RX port, when it changes we start sampling the bit.
+  P1IES |= PRX;   // RX Hi/lo edge interrupt
+  P1IFG &= ~PRX;  // Clear RX flag before enabling interrupts.
+  P1IE  |= PRX;   // Enable RX interrupts.
+
+  // Timer will be set only when needed.
+}
+
+inline void enable_timer() {
+  // Set Timer A to use SMCLK in continuous mode
+  TACTL = TASSEL_2 + MC_2;
+  // Enable timer interrupts.
+  CCTL |=  CCIE;
+}
+
+inline void disable_timer() {
+  // Set Timer A to use SMCLK, no mode. (not sure if this is nessaciry)
+  TACTL = TASSEL_2;
+  // Disable timer interrupts.
+  CCTL &=  ~CCIE;
+}
+
+void softuart_puts(byte *msg) {
+  while (*msg)
+    softuart_putc(*msg++);
+}
+
+void softuart_write(byte *buf, byte count) {
+  for (; count > 0; count--)
+    softuart_putc(*(buf++));
+}
+
+inline void softuart_putc(byte c) {
+  while (!softuart_try_putc(c));
+}
+
+inline byte softuart_try_putc(byte c) {
+  // Try to insert the byte into queue.
+  if (fifo_try_put(&tx_uart_fifo, c, 0)) {
+    // if timer is off, enable it
+    if (CCTL & CCIE) {
+      enable_timer();
+      // Set Timer A comparator to interrupt in BIT_TIME clocks from now
+      CCR0   = TAR + BIT_TIME;
+    }
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+
+
+// Port 1 interrupt service routine
+#pragma vector=PORT1_VECTOR
+__interrupt void Port_1(void) {
+  P1IE &= ~PRX;   // Disable RXD interrupt
+  P1IFG &= ~PRX;  // Clear RXD IFG (interrupt flag)
+
+  rx_byte = 0; 
+  rx_bit_count = 0x9; // Load Bit counter, 8 bits + stop bit (the interrupt already occured at the start bit)
+
+  enable_timer();
+  CCR1 = TAR + BIT_TIME/2;    // Set the timer to half the time, so we sample in the peak of the bit signal
+  
+  P1OUT ^= BIT6;
+  return;
+}
+
+
+inline void handle_tx() {
+  byte byte_ready, c;
+  // This makes the interupt happen again in BIT_TIME so we TX the next bit.
+  CCR0 += BIT_TIME;
+
+  // Are we in the middle of TXing a byte?  
+  if (tx_bit_count > 0) {
+    // Tx a bit
+    if (tx_byte & 1){ 
+      P1OUT |= PTX; //TODO: change to PTX
+    } else {
+      P1OUT &= ~(PTX); //TODO change to PTX
+    }
+    // Ditch the last bit we just TXed, and reduce count.
+    tx_byte >>= 1;
+    tx_bit_count--;
+  } else {
+    // Fetch the next byte to TX from buffer
+    byte_ready = fifo_try_get(&tx_uart_fifo, &c, 1);
+    if (byte_ready) {
+      // Set the current byte to send. We add stop bit and start bit.
+      tx_byte = (0x100 | c) << 1;
+      tx_bit_count = 10;
+    } else {
+      // // If no more bytes to send, stop timer.
+      // // Stop Timer A - I AM NOT SURE THIS IS NEEDED.
+      // TACTL = TASSEL_2;
+      // // Disable Timer A interrupt
+      // CCTL &= ~CCIE;
+      // return;
+    }
+  }
+}
+
+inline void handle_rx() {
+  if (rx_bit_count > 0) {
+
+  }
+}
+
+
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer0_A0() {
+  //P1OUT |= BIT0; 
+
+  /////////////////////////////////////////////////////////////////////
+  // If there's nothing to tx and nothing to rx, disable timer.
+  /////////////////////////////////////////////////////////////////////  
+  if ((tx_uart_fifo.byte_count == 0) && 
+      (tx_bit_count == 0) &&
+      (rx_bit_count == 0)) {
+      // If no more bytes to send, stop timer.
+      // Stop Timer A - I AM NOT SURE THIS IS NEEDED.
+      TACTL = TASSEL_2;
+      // Disable Timer A interrupt
+      CCTL &= ~CCIE;
+
+      //P1OUT &= ~BIT0;
+      return;
+  }
+
+  if (EQU0) {
+    handle_tx();
+  }
+  if (EQU1) {
+    handle_rx();
+  }
+
+}

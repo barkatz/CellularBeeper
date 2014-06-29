@@ -1,0 +1,7 @@
+Need to do once:
+1. ON ARDUINO ONLY: solder the two solder pads above the heads of pins 8 and 9 -- in order to connect pin 9 to the PWRKEY pin of the SIM900
+2. configure baudrate in non-volatile memory (in order to receive the RDY response on power on):
+   AT+IPR=9600
+3. configure sms modes:
+   a. AT+CMGF=0 - set SMS to PDU mode (http://www.smartposition.nl/resources/sms_pdu.html)
+   b. AT+CNMI=2,2,0,0,0 - make the SIM900 send us the SMS messages as they arrive

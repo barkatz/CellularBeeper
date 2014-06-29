@@ -1,0 +1,115 @@
+#include <msp430.h>
+#include "uart.h"
+#include "misc.h"
+#include "atomic.h"
+
+static CIRCBUFFER tx_uart_buf;
+static CIRCBUFFER rx_uart_buf;
+
+int uart_init(uart_clock_source_t clk_src, word BR, byte MCTL) {
+  
+  // USCI_A0 setup for the given parameters
+  
+  UCA0CTL1 |= UCSWRST;            // Stop USCI
+
+  P1SEL     = BIT1 + BIT2;        // set P1.1 to RX and P1.2 to TX
+  P1SEL2    = BIT1 + BIT2;        //
+  UCA0CTL1 |= clk_src << 6;       // Choose CLK source
+
+  UCA0BR0   = BR & 0xff;
+  UCA0BR1   = BR >> 8;
+  UCA0MCTL  = MCTL;
+
+  UCA0CTL1 &= ~UCSWRST;           // Start USCI
+
+  uart_init_queue(&tx_uart_buf);
+  uart_init_queue(&rx_uart_buf);
+  IE2      |= UCA0RXIE;           // Enable RX interrupt
+
+  return 0;
+}
+
+void uart_init_queue(CIRCBUFFER *q) {
+  q->read_idx = q->write_idx = q->byte_count = 0;
+}
+
+inline byte uart_try_putc(byte c) {
+  if (tx_uart_buf.byte_count >= UART_BUF_SIZE) {
+    tx_uart_buf.debug |= 1;
+    return 0;
+  }
+  tx_uart_buf.buf[tx_uart_buf.write_idx++] = c;
+  tx_uart_buf.write_idx %= UART_BUF_SIZE;
+  ATOMIC_INC(tx_uart_buf.byte_count); // MUST BE ATOMIC -- decremented in an interrupt
+  IE2 |= UCA0TXIE; // enable TX interrupt
+  return 1;
+}
+
+inline void uart_putc(byte c) {
+  while(!uart_try_putc(c));
+}
+
+void uart_puts(byte *msg) {
+  while(*msg)
+    uart_putc(*msg++);
+}
+
+void uart_write(byte *buf, byte count) {
+  for (; count > 0; count--)
+    uart_putc(*(buf++));
+}
+
+byte uart_read(byte *buf, byte count) {
+  byte *orig_buf = buf;
+  byte bytes_ready = rx_uart_buf.byte_count; // MUST BE ATOMIC (that's why we didn't put it in the MIN statement)
+
+  count = MIN(count, bytes_ready);
+  while ((count--) > 0) {
+    *(buf++) = rx_uart_buf.buf[rx_uart_buf.read_idx++];
+    rx_uart_buf.read_idx %= UART_BUF_SIZE;
+  }
+
+  count = (byte)(buf-orig_buf);
+  ATOMIC_SUB(rx_uart_buf.byte_count, count);
+  
+  return count;
+}
+
+volatile int i;
+L
+
+#pragma vector=USCIAB0RX_VECTOR
+__interrupt void USCI0RX_ISR() {
+  byte chr;
+   P1OUT ^= 1;
+  for (i=0; i<20000; i++);
+  if (IFG2 & UCA0RXIFG) {
+    // the received byte is in UCA0RXBUF
+    chr = UCA0RXBUF;
+    if (rx_uart_buf.byte_count < UART_BUF_SIZE) {
+      rx_uart_buf.buf[rx_uart_buf.write_idx++] = UCA0RXBUF;
+      rx_uart_buf.write_idx %= UART_BUF_SIZE;
+      rx_uart_buf.byte_count++;
+    }
+    
+  }
+}
+
+#pragma vector=USCIAB0TX_VECTOR
+__interrupt void USCI0TX_ISR() {
+  if (IFG2 & UCA0TXIFG) {
+
+    
+    if (tx_uart_buf.byte_count) {
+      // the byte to transmit is to be put in UCA0TXBUF
+      UCA0TXBUF = tx_uart_buf.buf[tx_uart_buf.read_idx++];
+      tx_uart_buf.read_idx %= UART_BUF_SIZE;
+      tx_uart_buf.byte_count--;
+      if (tx_uart_buf.byte_count == 0)
+        IE2  &= ~UCA0TXIE; // disable TX interrupt
+    } else {
+      tx_uart_buf.debug |= 2;
+    }
+
+  }
+}
