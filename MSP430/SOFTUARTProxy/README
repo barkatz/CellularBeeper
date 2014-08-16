@@ -1,0 +1,4 @@
+This is just a simple example of the software uart library.
+Each byte recieved on the RX pin, is transmitted on the TX pin (defined in the software UART library).
+
+
