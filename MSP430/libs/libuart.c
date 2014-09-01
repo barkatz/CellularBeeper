@@ -6,6 +6,8 @@
 static inline byte _uart_try_putc(byte c);
 static inline void _uart_putc(byte c);
 
+static inline byte _softuart_getc(byte *c);
+
 static FIFO tx_uart_fifo;
 static FIFO rx_uart_fifo;
 
@@ -30,6 +32,14 @@ int uart_init(uart_clock_source_t clk_src, word BR, byte MCTL) {
   IE2      |= UCA0RXIE;           // Enable RX interrupt
 
   return 0;
+}
+
+static inline byte _uart_getc(byte *c) {
+  return fifo_try_get(&rx_uart_fifo, c, 0);
+}
+
+byte uart_getc(byte *c) {
+  return _uart_getc(c);
 }
 
 static inline byte _uart_try_putc(byte c) {

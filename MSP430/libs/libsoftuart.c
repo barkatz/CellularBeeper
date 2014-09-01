@@ -4,20 +4,39 @@
 #include "fifo.h"
 #include "atomic.h"
 
-// Use these P1 pins for IO
-#define PTX      BIT2
-#define PRX      BIT1
+/*
+Software UART implementation using the MSP timers.
+To fully understand timers configuration read slau144j.pdf, 12.3, Timer_A Registers.
+To sum up:
+TACTL    -> Timer_A Control.
+TAR      -> The counter itself.
+TACCTLX  -> The capture/compare control X
+TACCRX   -> The capture/compare X
+We will use Timer A, in continus mode, with 2 comparators  (Rx/Tx)
+
+The pins we will be using are:
+ P1.1 for RX (same as the hardware uart).
+ P1.2 for TX (same as the hardware uart).
+
+Note that the TX pin can be whatever pin we want, but the RX bin need to be one of the CCI pins (i.e pins that could be connected as timer input).
+
+*/
+
+// Use these pins for IO
+#define PTX      BIT2 // P2.2
+#define PRX      BIT3 // P2.3
 
 // Use Timer_A
-#define TR      TAR
-#define TCTL    TACTL
+#define TR      TAR     // Timer Register.
+#define TCTL    TACTL   // Timer Control.
 
-  // Using TACCx1 for TXCCx is specific for PTX being P1.2
-#define TXCCTL  TACCTL1
-#define TXCCR   TACCR1
-#define TXINTID TIMER0_A1_VECTOR
+// Define TX Comapartor to be compartor 1.
+#define TXCCTL  TACCTL1           // TX Comparator control.
+#define TXCCR   TACCR1            // TX Comparator register.
+#define TXINTID TIMER0_A1_VECTOR  
   
-  // Using TACCx0 for RXCCx is specific for PRX being P1.1
+// Define RX Comparator to be compartor 0.
+// Note that only the CCI0A/B registers can be used for input using this way.
 #define RXCCTL  TACCTL0
 #define RXCCR   TACCR0
 #define RXINTID TIMER0_A0_VECTOR
@@ -26,7 +45,9 @@
 static inline byte _softuart_try_putc(byte c);
 static inline void _softuart_putc(byte c);
 static inline byte _softuart_getc(byte *c);
+// Configure capturares.
 static inline void _softuart_prepare_rx();
+static inline void _softuart_prepare_tx();
 
 static FIFO tx_softuart_fifo;
 static FIFO rx_softuart_fifo;
@@ -43,25 +64,31 @@ void softuart_init(softuart_clock_source_t src, word _bit_time) {
   fifo_init(&tx_softuart_fifo);
   fifo_init(&rx_softuart_fifo);
 
+
   // Keep bit time (how many CLK cycles per bit)
   bit_time = _bit_time;
 
-  // Set the TX pin to be the output of our TX comparator
-  P1DIR  |= PTX;
-  P1SEL  |= PTX;
-  P2SEL  &= ~PTX;
+  // Set the TX pin to be output
+  P2DIR  |= PTX;
 
-  // Set the RX pin to be the input of our RX capturer
-  P1DIR &= ~PRX;
-  P1SEL |= PRX;
-  P2SEL &= ~PTX;
+  // 
+  // Sets the RX pin. this goes together with softuart_prepare_rx() which initializes SCCIx
+  //
+  // Set the RX pin to be the input CCI0A(p1.1) (see msp430g2553.pdf, Table 16 P.43)
+  //P1DIR &= ~PRX;
+  //P1SEL |= PRX;
+  //P1SEL2 &= ~PRX;
+  // Set the RX pin to be the input CCI0B(p2.3) (see msp430g2553.pdf, Table 20 P.51)
+  P2DIR &= ~PRX;
+  P2SEL |= PRX;
+  P2SEL2 &= ~PRX;
 
-  // Set the TX comparator output mode to direct, and start TX-ing a stop bit
-  TXCCTL = OUT | OUTMOD_0;
+  // preparse tx/rx compartors.
+  _softuart_prepare_tx();
   _softuart_prepare_rx();
 
-  // Start Timer A using SMCLK in continuous mode
-  TCTL = src<<8 | MC_2;
+  // Start Timer A using src clk in continuous mode
+  TCTL = src<<8 | MC_2 ;
 }
 
 
@@ -122,68 +149,99 @@ static inline byte _softuart_try_putc(byte c) {
 static inline void _softuart_prepare_rx() {
   // Reset the RX state
   rx_byte = 0;
+  rx_bit_count = 0;
   // Set the RX capturer to synchronize on timer clock, capture the falling edge of
-  // the required pin, and enable it
-  RXCCTL = CAP | SCS | CM_2 | CCIS_0 | CCIE;
+  // the required pin, and enable it:
+  // CAP    -> Capture mode enabled.
+  // SCS    -> Synchhronize the capture with next timer clock.
+  // CM_2   -> capture on falling edge
+  // CCIS_0 -> Selects CCIxA (which is-)
+  
+  // The signal which will be sampled can be read via CCI (the pin sampled is hardware specific.)
+  //RXCCTL = CAP | SCS | CM_2 | CCIS_0 | CCIE;
+  RXCCTL = CAP | SCS | CM_2 | CCIS_1 | CCIE;
+}
+static inline void _softuart_prepare_tx() {
+  // start TX-ing a stop bit
+  P2OUT |= PTX;
 }
 
+/*
+Rx interrupt.
+*/
 #pragma vector=RXINTID
 __interrupt void softuart_rx_int_handler() {
-  if (RXCCTL & CAP) {
-    P1DIR |= BIT0;
-    P1OUT ^= BIT0;
 
-    // This is our start bit! Prepare for byte RX
+  //
+  // If we are in CAPTURE mode it means we still didn't get a single byte.
+  // 
+  if (RXCCTL & CAP) {
+    // This is our start bit! Prepare for byte RX.
+    // Clear capture mode, and set the timer to 1.5 of the bit timer 
+    //(1 bit time to skip the start bit, 1/2 time to sample in the middle of the next bit)
     rx_bit_count = 8;
     RXCCR += bit_time + (bit_time/2);
-    RXCCTL = CCIE;
-
+    RXCCTL = CCIE | SCS;
+  //
+  // If we are not in capture mode we are in a middle of recieving a byte...
+  //
   } else {
+      // Set the timer for the next bit
+      RXCCR += bit_time;
+
     // We're currently RX-ing a byte
-
-    if (rx_bit_count > 0) {
-      // We've got a new bit
-      rx_byte <<= 1;
+    if (rx_bit_count > 0) {      
+      // Recieve order is from MSB to LSB. pack the bits...
       if (RXCCTL & CCI) {
-        rx_byte |= 1;
-      }
-
+         rx_byte |=  0x100;
+      } 
+      rx_byte >>= 1;
       rx_bit_count--;
     } else {
-      // This is our stop bit
-      P1DIR |= BIT6;
-      P1OUT ^= BIT6;
-
       // Push the RX-ed byte to the RX fifo
       fifo_try_put(&rx_softuart_fifo, rx_byte & 0xff, 1);
 
-      // Prepare for the next start bit
+      // Prepare for the next start bit - set capture mode etc...
       _softuart_prepare_rx();
+      
     }
   }
 }
 
+
+/**
+Tx interrupt.
+This interrupt will be triggered only when some one called _softuart_try_putc to try and transmit a byte.
+The interrupt will send a bit every time, untill not more bytes are in the send queue.
+Then, it will disable the interrupt (untill _softuart_try_putc is called again to transmit more bytes)
+*/
 #pragma vector=TXINTID
 __interrupt void softuart_tx_int_handler() {
   byte c;
-
+  // Check the capture interrupt flag of the TX Compartor Control registers.
   if (TXCCTL & CCIFG) { // This should only be checked if TXCCTL isn't TACCTL0
+    // Clear interrupt.
     TXCCTL &= ~CCIFG; // Again, this should only be done if TXCCTL isn't TACCTL0
 
-    // Synchronize the comparator for the next bit
+    // Synchronize the comparator for the next bit 
     TXCCR += bit_time;
 
+    //
+    // Are we in the middle of a byte?
+    //
     if (tx_bit_count > 0) {
-      // Schedule a bit to TX for the next bit time
+      // Transmit the next bit.
       if (tx_byte & 1) {
-        TXCCTL = (TXCCTL & ~OUTMOD_7) | OUTMOD_1; // Set the output mode to Set (output 1 for the next bit)
+        P2OUT |= PTX;
       } else {
-        TXCCTL = (TXCCTL & ~OUTMOD_7) | OUTMOD_5; // Set the output mode to Reset (output 0 for the next bit)
+        P2OUT &= ~PTX;
       }
       // Ditch the this bit
       tx_byte >>= 1;
       tx_bit_count--;
-
+    //
+    // If we finished transmiting a byte - check if there are more bytes in queue...
+    //
     } else {
       // Try fetching the next byte to TX
       if (fifo_try_get(&tx_softuart_fifo, &c, 1)) {
@@ -191,7 +249,9 @@ __interrupt void softuart_tx_int_handler() {
         tx_byte = (0x100 | c) << 1;
         tx_bit_count = 10;
       } else {
+        //
         // If there are no more bytes to send, stop the TX comparator
+        //
         TXCCTL &= ~CCIE;
       }
     }

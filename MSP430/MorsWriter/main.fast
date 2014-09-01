@@ -1,0 +1,146 @@
+#include <msp430.h>
+#include "misc.h"
+#include "utils.h"
+  
+#define LED_PIN     BIT5
+#define UNIT_TIME   0x70 
+
+#define DOT         1
+#define DASH        0
+#define IGNORE      2
+
+static char chars_to_units[26][5] = {
+  {DOT ,  DASH,   IGNORE, IGNORE, IGNORE },    /* A */
+  {DASH,  DOT,    DOT,    DOT,    IGNORE },    /* B */
+  {DASH,  DOT,    DASH,   DOT,    IGNORE },    /* C */
+  {DASH,  DOT,    DOT,    IGNORE, IGNORE },    /* D */
+  {DOT,   IGNORE, IGNORE, IGNORE, IGNORE },    /* E */
+  {DOT,   DOT,    DASH,   DOT,    IGNORE },    /* F */
+  {DASH,  DASH,   DOT,    IGNORE, IGNORE },    /* G */
+  {DOT,   DOT,    DOT,    DOT,    IGNORE },    /* H */
+  {DOT,   DOT,    IGNORE, IGNORE, IGNORE },    /* I */
+  {DOT,   DASH,   DASH,   DASH,   IGNORE },    /* J */
+  {DASH,  DOT,    DASH,   IGNORE, IGNORE },    /* K */
+  {DOT,   DASH,   DOT,    DOT,    IGNORE },    /* L */
+  {DASH,  DASH,   IGNORE, IGNORE, IGNORE },    /* M */
+  {DASH,  DOT,    IGNORE, IGNORE, IGNORE },    /* N */
+  {DASH,  DASH,   DASH,   IGNORE, IGNORE },    /* O */
+  {DOT,   DASH,   DASH,   DOT,    IGNORE },    /* P */
+  {DASH,  DASH,   DOT,    DASH,   IGNORE },    /* Q */
+  {DOT,   DASH,   DOT,    IGNORE, IGNORE },    /* R */
+  {DOT,   DOT,    DOT,    IGNORE, IGNORE },    /* S */
+  {DASH,  IGNORE, IGNORE, IGNORE, IGNORE },    /* T */
+  {DOT,   DOT,    DASH,   IGNORE, IGNORE },    /* U */
+  {DOT,   DOT,    DOT,    DASH,   IGNORE },    /* V */
+  {DOT,   DASH,   DASH,   IGNORE, IGNORE },    /* W */
+  {DASH,  DOT,    DOT,    DASH,   IGNORE },    /* X */
+  {DOT,   DOT,    DOT,    DASH,   IGNORE },    /* Y */
+  {DASH,  DASH,   DOT,    DOT,    IGNORE },    /* Z */
+
+};
+
+//
+// Need to use ACLK, but in the meanwhile we will slow it down using software.
+//
+#define SLOW_RATIO 0x70
+static int slow_counter_low = 0;
+static int slow_counter_high = 0;
+static int my_taccr0 = 0;
+
+static int index_in_msg = 0;
+static int index_in_char = 0;
+static char space_between_symbols = 0;
+static char msg[] = "sos ";
+static char cur_char;
+
+/*
+A simple timer example which toggels pinX every second.
+*/
+int main() {
+  WDTCTL = WDTPW | WDTHOLD;                 // stop WDT
+
+  // configure main clock
+  BCSCTL1 = CALBC1_1MHZ;                    // set DCO to 1MHz
+  DCOCTL  = CALDCO_1MHZ;
+  // Define the LED_PIN as output.
+  P1DIR |= LED_PIN;  
+  // BCSCTL1 &= (~XTS);
+  // BCSCTL3 &= ~(BIT4|BIT5); // 32768Hz crystal on LFXT1
+  // // Init first char to transmit
+  cur_char = msg[index_in_msg];
+  
+  //
+  // Compartor Control Register 0 of TimerA.
+  // We select OUTMODE_0, and enable the timer interrupt.
+  // 
+  TA0CCTL0 = OUTMOD_0 | CCIE;
+  TA0CCR0 = UNIT_TIME;
+  my_taccr0 = UNIT_TIME;
+
+  
+  // Start Timer A using src clk in continuous mode
+  TA0CTL = TASSEL_2 | ID_3 | MC_1 | TAIE; 
+  
+  // enter LPM0, interrupts enabled
+  __bis_SR_register(LPM0_bits + GIE);       
+  
+}
+
+int do_slow_clock() {
+  // P1OUT ^= LED_PIN;
+  // return;
+
+  // Turn off the led between letters - 3 time units.
+  if (space_between_symbols == 1) {
+    space_between_symbols = 0;
+    P1OUT &= ~LED_PIN;
+    my_taccr0 = UNIT_TIME*3;
+    return;
+  }
+
+  // Are we transmiting a space? turn led of for 7 time units.
+  if (cur_char == ' ') {
+    P1OUT &= ~LED_PIN;
+    my_taccr0 = UNIT_TIME*7;
+    index_in_msg = (index_in_msg+1) % (sizeof(msg)-1);
+    cur_char = msg[index_in_msg];
+    return;   
+  }
+
+  // We are transmitting a character...
+  // After the next letter is transmitted, turn off the led.
+  space_between_symbols = 1;
+  
+  // Get the current symbol.
+  char cur_symbol = chars_to_units[cur_char-'a'][index_in_char];
+  if (cur_symbol == IGNORE) {
+    index_in_char = 0;
+    index_in_msg = (index_in_msg+1) % (sizeof(msg)-1);
+    cur_char = msg[index_in_msg];
+
+    P1OUT &= ~LED_PIN;
+    my_taccr0 = UNIT_TIME*1;
+
+  } else if  (cur_symbol == DASH) {
+    P1OUT |= LED_PIN;
+    my_taccr0 = UNIT_TIME*3;
+    index_in_char++;
+
+  } else if (cur_symbol == DOT) {
+    P1OUT |= LED_PIN;
+    my_taccr0 = UNIT_TIME*1;
+    index_in_char++;
+  }
+}
+
+
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void softuart_tx_int_handler() {
+  slow_counter_low++;
+  if (slow_counter_low == my_taccr0) {
+    slow_counter_low = 0;
+    do_slow_clock();
+  } 
+  TA0CCR0 = UNIT_TIME;
+}
+
