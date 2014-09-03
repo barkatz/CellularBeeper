@@ -7,7 +7,7 @@ INCLUDES = -I../include
 LIBS     = -L../libs -lutils -lsoftuart -luart -lfifo
 MCU      = msp430g2553
 #######################################################################################
-CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES) $(DEFINES)
+CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES) $(DEFINES) 
 ASFLAGS  = -mmcu=$(MCU) -x assembler-with-cpp -Wa,-gstabs
 LDFLAGS  = -mmcu=$(MCU) -Wl
 ########################################################################################

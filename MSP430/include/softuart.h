@@ -11,7 +11,7 @@ typedef enum softuart_clock_source_t {
 } softuart_clock_source_t;
 
 void softuart_init(softuart_clock_source_t src, word _bit_time);
-
+void softuart_putc(byte c);
 void softuart_puts(byte *msg);
 void softuart_write(byte *buf, byte count);
 byte softuart_getc(byte *c);

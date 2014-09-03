@@ -23,8 +23,8 @@ Note that the TX pin can be whatever pin we want, but the RX bin need to be one 
 */
 
 // Use these pins for IO
-#define PTX      BIT2 // P2.2
-#define PRX      BIT3 // P2.3
+#define PTX      BIT2 // P1.2
+#define PRX      BIT1 // P1.1
 
 // Use Timer_A
 #define TR      TAR     // Timer Register.
@@ -69,19 +69,19 @@ void softuart_init(softuart_clock_source_t src, word _bit_time) {
   bit_time = _bit_time;
 
   // Set the TX pin to be output
-  P2DIR  |= PTX;
+  P1DIR  |= PTX;
 
   // 
   // Sets the RX pin. this goes together with softuart_prepare_rx() which initializes SCCIx
   //
   // Set the RX pin to be the input CCI0A(p1.1) (see msp430g2553.pdf, Table 16 P.43)
-  //P1DIR &= ~PRX;
-  //P1SEL |= PRX;
-  //P1SEL2 &= ~PRX;
+  P1DIR &= ~PRX;
+  P1SEL |= PRX;
+  P1SEL2 &= ~PRX;
   // Set the RX pin to be the input CCI0B(p2.3) (see msp430g2553.pdf, Table 20 P.51)
-  P2DIR &= ~PRX;
-  P2SEL |= PRX;
-  P2SEL2 &= ~PRX;
+  //P2DIR &= ~PRX;
+  //P2SEL |= PRX;
+  //P2SEL2 &= ~PRX;
 
   // preparse tx/rx compartors.
   _softuart_prepare_tx();
@@ -158,12 +158,12 @@ static inline void _softuart_prepare_rx() {
   // CCIS_0 -> Selects CCIxA (which is-)
   
   // The signal which will be sampled can be read via CCI (the pin sampled is hardware specific.)
-  //RXCCTL = CAP | SCS | CM_2 | CCIS_0 | CCIE;
-  RXCCTL = CAP | SCS | CM_2 | CCIS_1 | CCIE;
+  RXCCTL = CAP | SCS | CM_2 | CCIS_0 | CCIE;
+  //RXCCTL = CAP | SCS | CM_2 | CCIS_1 | CCIE;
 }
 static inline void _softuart_prepare_tx() {
   // start TX-ing a stop bit
-  P2OUT |= PTX;
+  P1OUT |= PTX;
 }
 
 /*
@@ -232,9 +232,9 @@ __interrupt void softuart_tx_int_handler() {
     if (tx_bit_count > 0) {
       // Transmit the next bit.
       if (tx_byte & 1) {
-        P2OUT |= PTX;
+        P1OUT |= PTX;
       } else {
-        P2OUT &= ~PTX;
+        P1OUT &= ~PTX;
       }
       // Ditch the this bit
       tx_byte >>= 1;
