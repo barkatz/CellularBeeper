@@ -17,9 +17,9 @@ int uart_init(uart_clock_source_t clk_src, word BR, byte MCTL) {
   
   UCA0CTL1 |= UCSWRST;            // Stop USCI
 
-  P1SEL     = BIT1 + BIT2;        // set P1.1 to RX and P1.2 to TX
-  P1SEL2    = BIT1 + BIT2;        //
-  UCA0CTL1 |= clk_src << 6;       // Choose CLK source
+  P1SEL     |= BIT1 + BIT2;        // set P1.1 to RX and P1.2 to TX
+  P1SEL2    |= BIT1 + BIT2;        //
+  UCA0CTL1  |= clk_src << 6;       // Choose CLK source
 
   UCA0BR0   = BR & 0xff;
   UCA0BR1   = BR >> 8;

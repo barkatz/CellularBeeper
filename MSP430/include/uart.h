@@ -15,5 +15,6 @@ void uart_puts(byte *msg);
 void uart_write(byte *buf, byte count);
 byte softuart_getc(byte *c);
 byte uart_read(byte *buf, byte count);
+byte uart_getc(byte *c);
 
 #endif // _UART_H
