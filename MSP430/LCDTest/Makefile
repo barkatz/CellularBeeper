@@ -1,9 +1,13 @@
-SOURCES  = libutils.c libuart.c libfifo.c libsoftuart.c liblcd.c
-INCLUDES = -I ../include
-MCU      = msp430g2553
+DEFINES  = 
 
 #######################################################################################
-CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused -std=c99 $(INCLUDES)
+TARGET   = main.bin
+SOURCES  = main.c
+INCLUDES = -I../include
+LIBS     = -L../libs -lutils 
+MCU      = msp430g2553
+#######################################################################################
+CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES) $(DEFINES)
 ASFLAGS  = -mmcu=$(MCU) -x assembler-with-cpp -Wa,-gstabs
 LDFLAGS  = -mmcu=$(MCU) -Wl
 ########################################################################################
@@ -24,19 +28,30 @@ RM       = rm -f
 MV       = mv
 ########################################################################################
 OBJECTS = $(SOURCES:.c=.o)
-LIBS    = $(SOURCES:.c=.a)
 
-all: $(LIBS)
+all: remakelibs clean $(TARGET) cleanlibs
 
-%.a: %.o
-	$(AR) ruv $@ $<
-	$(RANLIB) $@
+remakelibs:
+	cd ../libs && make clean
+	cd ../libs && make DEFINES="$(DEFINES)"
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) $(LDFLAGS) $(DEFINES) $(LIBS) -o $@
+	echo
+	echo ">>>> Size of Firmware <<<<"
+	$(SIZE) $(TARGET)
 
 %.o: %.c
-	$(CC) $(INCLUDES) $(DEFINES) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CFLAGS) -o $@ $<
 
-.SILENT:
-.PHONY:  clean
 clean:
 	-$(RM) $(OBJECTS)
-	-$(RM) $(LIBS)
+	-$(RM) $(TARGET)
+	
+cleanlibs:
+	cd ../libs && make clean
+
+prog:
+	echo "prog $(TARGET)" | mspdebug rf2500
+
+.PHONY: clean cleanlibs prog remakelibs

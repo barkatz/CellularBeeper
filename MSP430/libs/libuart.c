@@ -6,7 +6,6 @@
 static inline byte _uart_try_putc(byte c);
 static inline void _uart_putc(byte c);
 
-static inline byte _softuart_getc(byte *c);
 
 static FIFO tx_uart_fifo;
 static FIFO rx_uart_fifo;
