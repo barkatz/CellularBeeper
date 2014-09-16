@@ -29,7 +29,7 @@ Define LCD pins layout.
 /*
 Needed for mili sleep.
 */
-#define CYCLES_PER_MSEC ((16*1000000)/1000)
+#define CYCLES_PER_MSEC ((1*1000000)/1000)
 
 
 int lcd_init();

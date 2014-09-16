@@ -1,7 +1,8 @@
 #include <msp430.h>
 #include "misc.h"
 #include "utils.h"
-#include "uart.h"
+// #include "uart.h"
+#include "lcd.h"
 
 /*
 Define which pin will be used as led
@@ -83,7 +84,7 @@ A simple timer example which toggels pinX every second.
 int main() {
   WDTCTL = WDTPW + WDTHOLD;         // Stop WDT
  
-  BCSCTL1 = CALBC1_1MHZ;                    // set DCO to 1MHz
+  BCSCTL1 = CALBC1_1MHZ;            // set DCO to 1MHz
   DCOCTL  = CALDCO_1MHZ;
   BCSCTL1 |= DIVA_3;                // ACLK/8
   BCSCTL3 |= XCAP_3;                // 12.5pF cap- setting for 32768Hz crystal
@@ -91,16 +92,16 @@ int main() {
   TACTL = TASSEL_1 | ID_3 | MC_2;   // ACLK, /8, continue mode.
 
   P1DIR   &= ~LED_PIN;
-  P1DIR   |= BIT0;
 
   P1IES   |= LED_PIN;   // Hi/Lo edge
   P1IE    |= LED_PIN;   // Enable interrupt
   P1IFG   &= ~LED_PIN;
 
-  uart_init(UART_SRC_SMCLK, 104, UCBRS0);
-  uart_puts("Initializing morse reader.\n");
-
-
+  // uart_init(UART_SRC_SMCLK, 104, UCBRS0);
+  // uart_puts("Initializing morse reader.\n");
+  lcd_init();
+  lcd_puts("Waiting :)");
+  lcd_return_home();
   // enter LPM0, interrupts enabled
   _BIS_SR(LPM3_bits + GIE); 
 
@@ -133,8 +134,6 @@ __interrupt void Port1_ISR(void)
   P1IFG &= ~LED_PIN; // Clear the flag telling us where we came from
   P1IES ^= LED_PIN;  // Toggle the high/low bit
 
-  // Debug...
-  P1OUT ^= BIT0;    
   
   // calculate the time difference from the last time.
   counter = TAR;
@@ -155,7 +154,8 @@ __interrupt void Port1_ISR(void)
       //TRACE("dot");
     } else {
       cur = 0;
-      TRACE("error1");
+      lcd_putc('1');
+      // TRACE("error1");
     }
   } else {// led was off
     // If its a space between 2 words
@@ -163,8 +163,10 @@ __interrupt void Port1_ISR(void)
       buf[cur++] = IGNORE;
       l = search_letter(buf, cur);
       cur = 0;
-      uart_putc(l);
-      uart_putc(' ');
+      lcd_putc(l);
+      lcd_putc(' ');
+      // uart_putc(l);
+      // uart_putc(' ');
       // TRACE("SPACE");
       cur = 0;
     // If its a space between 2 letters 
@@ -173,13 +175,15 @@ __interrupt void Port1_ISR(void)
       buf[cur++] = IGNORE;
       l = search_letter(buf, cur);
       cur = 0;
-      uart_putc(l);
+      lcd_putc(l);
+      // uart_putc(l);
     // If its just a space between symbols..
     } else if (CHECK_RATIO(diff, N_AFTER_SYM)) {
       // Nothing to do - 
     } else {
       cur = 0;
-      TRACE("error2 -> %u", diff);
+      lcd_putc('2');
+      // TRACE("error2 -> %u", diff);
     }
   }
   return; 

@@ -17,8 +17,14 @@ We will use Timer A, in continus mode, with 2 comparators  (Rx/Tx)
 */
 
 // Use these pins for IO
-#define PTX         BIT2              // P2.2 --> Timer1_A, CCI0A (Timer 1, Compartor/Capture 0)
-#define PRX         BIT0              // P2.0 --> Timer1_A, CCI1A (Timer 1, Compartor/Capture 1) 
+/*
+P2.2 --> Timer1_A, CCI0A (Timer 1, Compartor/Capture 0)
+P2.0 --> Timer1_A, CCI1A (Timer 1, Compartor/Capture 1) 
+*/
+#define PRX_PORT         P2              
+#define PTX_PORT         P2
+#define PTX_BIT          BIT2              
+#define PRX_BIT          BIT0               
 
 // Use Timer_A
 #define TR          TA1R               // Timer Register.
@@ -34,7 +40,17 @@ We will use Timer A, in continus mode, with 2 comparators  (Rx/Tx)
 #define RXCCR       TA1CCR0            // RX Comparator register.
 #define RXINTID     TIMER1_A0_VECTOR   // Timer 1, Compartor 0
 
+/**************************************
+Defines 
+**************************************/
+#define _SET_PORT_BIT(PORT, TYPE, BIT) (PORT ## TYPE |= BIT)
+#define _CLR_PORT_BIT(PORT, TYPE, BIT) (PORT ## TYPE &= ~BIT)
+#define SET_PORT_BIT(PORT, TYPE, BIT) _SET_PORT_BIT(PORT, TYPE, BIT)
+#define CLR_PORT_BIT(PORT, TYPE, BIT) _CLR_PORT_BIT(PORT, TYPE, BIT)
 
+
+#define _READ_BIT(PORT, TYPE, BIT) (PORT ## TYPE & BIT)
+#define READ_BIT(PORT, TYPE, BIT)  _READ_BIT(PORT, TYPE, BIT) 
 
 /**************************************
 Local functions
@@ -67,17 +83,13 @@ void softuart_init(softuart_clock_source_t src, word _bit_time) {
   /*
   Setup pins
   */
-  P2DIR &= ~PRX;    // Set up PRX as input
-  P2SEL |= PRX;     // Set up PRX as timer input
-  P2SEL2 &= ~PRX;   // Set up PRX as timer input
+  CLR_PORT_BIT(PRX_PORT, DIR,   PRX_BIT); // Set up PRX_BIT as input
+  SET_PORT_BIT(PRX_PORT, SEL,   PRX_BIT); // Set up PRX_BIT as timer input
+  CLR_PORT_BIT(PRX_PORT, SEL2,  PRX_BIT); // Clear sel2 of PRX.
 
-  P2DIR |= PTX;     // Set up PTX as output
-  P2SEL |= PTX;     // Set up PTX as timer output
-  P2SEL2 &= ~PTX;   // Set up PTX as timer output    
-
-  // debug
-  P1DIR |= (BIT6 + BIT0);
-  P1OUT &= ~(BIT6 + BIT0);
+  SET_PORT_BIT(PTX_PORT, DIR,   PTX_BIT); // Set up PTX_BIT as output
+  SET_PORT_BIT(PTX_PORT, SEL,   PTX_BIT); // Set up PTX_BIT as timer output
+  CLR_PORT_BIT(PTX_PORT, SEL2,  PTX_BIT); // Clear sel2 of PTX.
   
   // Keep bit time (how many CLK cycles per bit)
   bit_time = _bit_time;
@@ -137,7 +149,8 @@ __interrupt void softuart_rx_int_handler() {
   if (rxcctl & CAP) {
     // Make sure the input pin is LOW. If it is high, it is just a glitch!
     // For some reason this happens and i don't really understand if its a bug in the GSM chip or in my code :(
-    if (P2IN & PRX) {
+
+    if (READ_BIT(PRX_PORT, IN, PRX_BIT)) {
       return;
     }
 

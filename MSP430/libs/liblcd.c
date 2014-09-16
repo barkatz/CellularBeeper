@@ -195,9 +195,9 @@ int lcd_init() {
 
 void lcd_set_pos(uint8_t _x, uint8_t _y) {
   if (_y == 0) {
-    do_write_op_4bit(0x80 | _x,0,100);
+    do_write_op_4bit(0x80 | _x,0,2);
   } else {
-    do_write_op_4bit(0xC0 | _x,0,100);
+    do_write_op_4bit(0xC0 | _x,0,2);
   }
   x = _x;
   y = _y;

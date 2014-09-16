@@ -81,20 +81,22 @@ A simple timer example which toggels pinX every second.
 int main() {
   WDTCTL = WDTPW + WDTHOLD;   // Stop WDT
   
-  BCSCTL1 = CALBC1_1MHZ;                    // set DCO to 1MHz
+  BCSCTL1 = CALBC1_1MHZ;      // set DCO to 1MHz
   DCOCTL  = CALDCO_1MHZ;
 
   BCSCTL1 |= DIVA_3;          // ACLK/8
   BCSCTL3 |= XCAP_3;          //12.5pF cap- setting for 32768Hz crystal
 
   P1DIR |= (LED_PIN | BIT0);  // set led pin as output
+
+  // uart_init(UART_SRC_SMCLK, 104, UCBRS0);
+  // uart_puts("Initializing morse writer.\n");
+
   cur_char = msg[0];
   CCTL0 = CCIE; // CCR0 interrupt enabled
   CCR0 = 100; 
   TACTL = TASSEL_1 | ID_3 | MC_1; // ACLK, /8, upmode
 
-  uart_init(UART_SRC_SMCLK, 104, UCBRS0);
-  uart_puts("Initializing morse reader.\n");
 
   _BIS_SR(LPM3_bits + GIE); 
 }
@@ -104,8 +106,10 @@ int main() {
 static int switch_led(char on, int time_units) {
   if (on) {
     P1OUT |= LED_PIN;
+    P1OUT |= BIT0;
   } else {
     P1OUT &= ~LED_PIN;
+    P1OUT &= ~BIT0;
   }
   TAR = 0;
   CCR0 = UNIT_TIME*time_units;
