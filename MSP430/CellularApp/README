@@ -1,0 +1,7 @@
+This application makes the MSP act like a UART bridge between the PC and GSM Module.
+The idea is to get a serial shell on the GSM module using the msp (w/o the arduino).
+
+P1.1 and P1.2 are the TX/RX of the PC.
+P1.X and P1.Y are the TX/RX of the GSM Module.
+
+
