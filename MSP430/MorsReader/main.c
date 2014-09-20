@@ -13,7 +13,9 @@ Define which pin will be used as led
 How many clock cycles is a unit (DOT)
 512 - one second
 */
-#define UNIT_TIME   ((512/4)/16)
+
+uint16_t UNIT_TIME;  
+uint16_t divisor;
 
 
 /*
@@ -78,6 +80,7 @@ static unsigned int counter = 0;
 static unsigned int last_counter = 0;
 
 
+#define BUTTON BIT3
 /*
 A simple timer example which toggels pinX every second.
 */
@@ -88,6 +91,22 @@ int main() {
   DCOCTL  = CALDCO_1MHZ;
   BCSCTL1 |= DIVA_3;                // ACLK/8
   BCSCTL3 |= XCAP_3;                // 12.5pF cap- setting for 32768Hz crystal
+
+  // Enable button int
+  P1DIR |= BIT6; // For debug.
+  P1DIR &= ~BUTTON;   // Set button pin as an input pin
+  P1OUT |= BUTTON;    // Set pull up resistor on for button
+  P1REN |= BUTTON;    // Enable pull up resistor for button to keep pin high until pressed
+  P1IES |= BUTTON;    // Enable Interrupt to trigger on the falling edge (high (unpressed) to low (pressed) transition)
+  P1IFG &= ~BUTTON;   // Clear the interrupt flag for the button
+  P1IE |= BUTTON;     // Enable interrupts on port 1 for the button
+
+  /*
+  How many clock cycles is a unit (DOT)
+  512 - one second
+  */
+  divisor = 2;
+  UNIT_TIME  = (512/4)/divisor;
 
   TACTL = TASSEL_1 | ID_3 | MC_2;   // ACLK, /8, continue mode.
 
@@ -106,6 +125,7 @@ int main() {
   _BIS_SR(LPM3_bits + GIE); 
 
 }
+
 
 
 static char search_letter(char *buf, char size){
@@ -130,6 +150,14 @@ static int cur=0;
 #pragma vector=PORT1_VECTOR
 __interrupt void Port1_ISR(void)
 {
+  if (P1IFG & BUTTON) {    
+    P1OUT ^= BIT6;
+
+    P1IFG &= ~BIT3;
+    divisor *= 2;
+    if (divisor >= 16)  { divisor = 2; }
+    UNIT_TIME = (512/4)/divisor;
+  }
   unsigned int diff;
   P1IFG &= ~LED_PIN; // Clear the flag telling us where we came from
   P1IES ^= LED_PIN;  // Toggle the high/low bit

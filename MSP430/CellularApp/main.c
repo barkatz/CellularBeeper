@@ -7,9 +7,21 @@
 #include "uart.h"
 #include "sim900.h"
 
+/*******************
+Pin layout 
+P2.2      -> Softuart RX (with SIM900)
+P2.0      -> Softuart TX (with SIM900)
+
+P1.1/2    -> H/W UART   (with PC)
+
+P1.7      -> RI (events from SIM900)
+********************/
+#define RI_PORT     P1
+#define RI_BIT      BIT7
+
 
 /*******************
-
+Clocks speed
 ********************/
 #define CLOCKSPEED_16MHZ
 
@@ -64,23 +76,42 @@ int main() {
   /* 9600Hz from 1MHZ, according to http://mspgcc.sourceforge.net/baudrate.html */
   uart_init(UART_SRC_SMCLK, BITTIME, UCBRS0);
   softuart_init(SOFTUART_SRC_SMCLK, BITTIME);
-  __bis_SR_register(GIE);
-  
-  // Wait for a while -> let gsm module wake up.
+  __bis_SR_register(GIE); // Enable interrupts.
+  //do_proxy();
+  // Wait for a while -> let gsm module wake up (not rly needed.)
   ms_sleep(200);
-  
   sim900_init();  
-
   ms_sleep(200);
   
-  // Wait for interrupts...
+  // Capture falling edge on RI port to capture calls and stuff.
+  CLR_PORT_BIT(RI_PORT, DIR, RI_BIT);   // Make RI input
+  //SET_PORT_BIT(RI_PORT, OUT, RI_BIT);   // Set pullup resistor ()
+  CLR_PORT_BIT(RI_PORT, IFG, RI_BIT);   // Clear prev interrupts on port
+  SET_PORT_BIT(RI_PORT, IES, RI_BIT);   // Capture falling transition (active low)
+  SET_PORT_BIT(RI_PORT, IE, RI_BIT);    // Enable interrupts
+  
 
-  TRACE("Switching to proxy mode...");
-  do_proxy();
+  while (1) {
+     TRACE("Going into Low power mode... Waiting for something...");
+    __bis_SR_register(LPM4_bits | GIE);
+    TRACE("RI changed :)...");
+  }
+  
 
-  __bis_SR_register(LPM3_bits | GIE);
+  //do_proxy();
+
+  
   
   return 0;
+}
+
+// XXX: THIS IS RI vector
+#pragma vector=PORT1_VECTOR
+__interrupt void Port_1(void) {
+  P1OUT ^= BIT0;
+  CLR_PORT_BIT(RI_PORT, IFG, RI_BIT);   // Clear prev interrupts on port
+  TRACE("HERE");
+  __bic_SR_register_on_exit(LPM4_bits); // Go to main
 }
 
 void ms_sleep(uint16_t msec) {

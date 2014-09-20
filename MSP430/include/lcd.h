@@ -13,7 +13,7 @@ Define LCD pins layout.
 #define 	DB6_PORT	 		P1
 #define  	DB6_BIT		 		BIT2
 #define 	DB7_PORT	 		P1
-#define  	DB7_BIT		 		BIT3
+#define  	DB7_BIT		 		BIT4
 
 
 #define ENABLE_PORT 			P2

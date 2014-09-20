@@ -91,7 +91,7 @@ int sim900_cmd(char* cmd) {
 
 }
 
-int sim900_clear_response_buf() {
+void sim900_clear_response_buf() {
   response_len = 0;
   memset(response, 0, MAX_RESPONSE_SIZE+1);
 }

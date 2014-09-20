@@ -12,7 +12,8 @@ Define which pin will be used as led
 How many clock cycles is a unit (DOT)
 512 - one second
 */
-#define UNIT_TIME   ((512/4)/16)
+uint16_t UNIT_TIME;  
+uint16_t divisor;
 
 
 /*
@@ -68,13 +69,14 @@ static char space_between_symbols = 0;
 /*
 The msg to be broadcasted...
 */
-static char msg[] = "the quick brown fox jumped over the lazy dog this is a super test abcdefghijklmnopqrstuvwxyz ";
+static char msg[] = "six years have passed remember where you came from and where youre going to come back to wishing you the best sos pasten sos team sonic ";
 
 /*
 The current char to be brodcasted.
 */
 static char cur_char;
 
+#define BUTTON BIT3
 /*
 A simple timer example which toggels pinX every second.
 */
@@ -86,8 +88,28 @@ int main() {
 
   BCSCTL1 |= DIVA_3;          // ACLK/8
   BCSCTL3 |= XCAP_3;          //12.5pF cap- setting for 32768Hz crystal
+  
+  // Enable button int
+  P1DIR |= BIT6;      // For button pushes
+  P1DIR &= ~BUTTON;   // Set button pin as an input pin
+  P1OUT |= BUTTON;    // Set pull up resistor on for button
+  P1REN |= BUTTON;    // Enable pull up resistor for button to keep pin high until pressed
+  P1IES |= BUTTON;    // Enable Interrupt to trigger on the falling edge (high (unpressed) to low (pressed) transition)
+  P1IFG &= ~BUTTON;   // Clear the interrupt flag for the button
+  P1IE |= BUTTON;     // Enable interrupts on port 1 for the button
+  
+  // Clear buttong push
+  P1OUT &= ~BIT6;
 
-  P1DIR |= (LED_PIN | BIT0);  // set led pin as output
+  
+  /*
+  How many clock cycles is a unit (DOT)
+  512 - one second
+  */
+  divisor = 2;
+  UNIT_TIME  = (512/4)/divisor;
+  P1DIR |= (BIT0); 
+  P2DIR |= (LED_PIN);  // set led pin as output
 
   // uart_init(UART_SRC_SMCLK, 104, UCBRS0);
   // uart_puts("Initializing morse writer.\n");
@@ -101,14 +123,25 @@ int main() {
   _BIS_SR(LPM3_bits + GIE); 
 }
 
+
+#pragma vector=PORT1_VECTOR
+__interrupt void Port_1(void) {
+  P1OUT ^= BIT6;
+
+  P1IFG &= ~BIT3;
+  divisor *= 2;
+  if (divisor >= 16)  { divisor = 2; }
+  UNIT_TIME = (512/4)/divisor;
+}
+
 #define ON 1
 #define OFF 0
 static int switch_led(char on, int time_units) {
   if (on) {
-    P1OUT |= LED_PIN;
+    P2OUT |= LED_PIN;
     P1OUT |= BIT0;
   } else {
-    P1OUT &= ~LED_PIN;
+    P2OUT &= ~LED_PIN;
     P1OUT &= ~BIT0;
   }
   TAR = 0;
