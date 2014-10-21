@@ -18,8 +18,8 @@ We will use Timer A, in continus mode, with 2 comparators  (Rx/Tx)
 
 // Use these pins for IO
 /*
-P2.2 --> Timer1_A, CCI0A (Timer 1, Compartor/Capture 0)
-P2.0 --> Timer1_A, CCI1A (Timer 1, Compartor/Capture 1) 
+P2.2 --> Timer1_A, CCI0A (Timer 1, Comparator/Capture 0)
+P2.0 --> Timer1_A, CCI1A (Timer 1, Comparator/Capture 1) 
 */
 #define PRX_PORT         P2              
 #define PTX_PORT         P2
@@ -30,15 +30,15 @@ P2.0 --> Timer1_A, CCI1A (Timer 1, Compartor/Capture 1)
 #define TR          TA1R               // Timer Register.
 #define TCTL        TA1CTL             // Timer Control.
 
-// Define TX Comapartor to be compartor 1.
+// Define TX Comapartor to be comparator 1.
 #define TXCCTL      TA1CCTL1           // TX Comparator control.
 #define TXCCR       TA1CCR1            // TX Comparator register.
 #define TXINTID     TIMER1_A1_VECTOR   // Timer 1, Compartor 1
   
-// Define RX Comparator to be compartor 0.
+// Define RX Comparator to be comparator 0.
 #define RXCCTL      TA1CCTL0           // RX Comparator control.
 #define RXCCR       TA1CCR0            // RX Comparator register.
-#define RXINTID     TIMER1_A0_VECTOR   // Timer 1, Compartor 0
+#define RXINTID     TIMER1_A0_VECTOR   // Timer 1, Comparator 0
 
 /**************************************
 Defines 
@@ -85,11 +85,11 @@ void softuart_init(softuart_clock_source_t src, word _bit_time) {
   */
   CLR_PORT_BIT(PRX_PORT, DIR,   PRX_BIT); // Set up PRX_BIT as input
   SET_PORT_BIT(PRX_PORT, SEL,   PRX_BIT); // Set up PRX_BIT as timer input
-  CLR_PORT_BIT(PRX_PORT, SEL2,  PRX_BIT); // Clear sel2 of PRX.
+  CLR_PORT_BIT(PRX_PORT, SEL2,  PRX_BIT); // Clear SEL2 of PRX.
 
   SET_PORT_BIT(PTX_PORT, DIR,   PTX_BIT); // Set up PTX_BIT as output
   SET_PORT_BIT(PTX_PORT, SEL,   PTX_BIT); // Set up PTX_BIT as timer output
-  CLR_PORT_BIT(PTX_PORT, SEL2,  PTX_BIT); // Clear sel2 of PTX.
+  CLR_PORT_BIT(PTX_PORT, SEL2,  PTX_BIT); // Clear SEL2 of PTX.
   
   // Keep bit time (how many CLK cycles per bit)
   bit_time = _bit_time;
@@ -104,7 +104,7 @@ void softuart_init(softuart_clock_source_t src, word _bit_time) {
 
   /*
   Configure clock
-  Start timer in continus mode.
+  Start timer in continous mode.
   */
   TCTL = src<<8 |  MC_2;                
 }
@@ -149,7 +149,6 @@ __interrupt void softuart_rx_int_handler() {
   if (rxcctl & CAP) {
     // Make sure the input pin is LOW. If it is high, it is just a glitch!
     // For some reason this happens and i don't really understand if its a bug in the GSM chip or in my code :(
-
     if (READ_BIT(PRX_PORT, IN, PRX_BIT)) {
       return;
     }
@@ -187,13 +186,13 @@ __interrupt void softuart_rx_int_handler() {
 /************************************************************************************************************************************
 TX Interrupt
 
-The interrupt will send a bit every time, untill not more bytes are present in the send queue.
-Then, it will disable the interrupt (untill _softuart_try_putc is called again to transmit more bytes).
+The interrupt will send a bit every time, until not more bytes are present in the send queue.
+Then, it will disable the interrupt (until _softuart_try_putc is called again to transmit more bytes).
 *************************************************************************************************************************************/
 #pragma vector=TXINTID
 __interrupt void softuart_tx_int_handler() {
   byte c;
-  // Check the capture interrupt flag of the TX Compartor Control registers.
+  // Check the capture interrupt flag of the TX Comparator Control registers.
   if (TXCCTL & CCIFG) { // This should only be checked if TXCCTL isn't TA1CCTL0
     // Clear interrupt.
     TXCCTL &= ~CCIFG; // Again, this should only be done if TXCCTL isn't TA1CCTL0
@@ -229,6 +228,15 @@ __interrupt void softuart_tx_int_handler() {
         //
         _softuart_prepare_tx();
         TXCCTL &= ~CCIE;
+
+        // Re-check if we have a pending byte to TX, in case there has been a race
+        // condition between this interrupt and another which called _softuart_try_putc
+        if (fifo_try_get(&tx_softuart_fifo, &c, 1)) {
+          // Synchronize the TX comparator
+          TXCCR  = TR;
+          // Enable the TX comparator interrupt, and invoke it (this will load a new byte)
+          TXCCTL |= CCIE + CCIFG;
+        }
       }
     }
   }
@@ -274,14 +282,10 @@ static inline byte _softuart_try_putc(byte c) {
   if (fifo_try_put(&tx_softuart_fifo, c, 0)) {
     // If the timer TX comparator is turned off,
     if (!(TXCCTL & CCIE)) {
-      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        if (!(TXCCTL & CCIE)) { // (check again atomically)
-          // // Synchronize the TX comparator
-          TXCCR  = TR;
-          // // Enable the TX comparator interrupt, and invoke it (this will load a new byte)
-          TXCCTL |= CCIE + CCIFG;
-        }
-      }
+      // Synchronize the TX comparator
+      TXCCR  = TR;
+      // Enable the TX comparator interrupt, and invoke it (this will load a new byte)
+      TXCCTL |= CCIE + CCIFG;
     }
     return 1;
   } else {

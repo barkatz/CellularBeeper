@@ -38,8 +38,10 @@ Clears and set the Enable/RW/RS lines.
 // This is the classic way to do it, but msp-gcc won't do it correctly....
 // In this method the ports should be define as P1/P2...
 // 2 Macros are needed to expand the port macro
+#undef  SET_PORT_BIT
 #define SET_PORT_BIT(PORT, BIT)        _SET_PORT_BIT(PORT,BIT)
 #define CLEAR_PORT_BIT(PORT, BIT)      _CLEAR_PORT_BIT(PORT, BIT)      
+#undef  _SET_PORT_BIT
 #define _SET_PORT_BIT(PORT, BIT)        (PORT ## OUT           |= BIT)
 #define _CLEAR_PORT_BIT(PORT, BIT)      (PORT ## OUT           &= ~BIT)
 #define SET_E     SET_PORT_BIT(ENABLE_PORT, ENABLE_BIT)
