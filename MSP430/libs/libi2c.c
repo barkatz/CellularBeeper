@@ -13,21 +13,25 @@
 #define UCTXBUF UCB0TXBUF
 
 void i2c_init(byte slave_addr) {
-  // TODO set the relevant pin modes
+  P1SEL  |= BIT6 + BIT7;       // Set P1.6 and P1.7 to USCI_B0
+  P1SEL2 |= BIT6 + BIT7;       //
 
-  UCCTL0 |= UCSWRST;           // Put the USCI in reset
-  UCCTL0  = UCSYNC | UCMODE_3; // 7-bit addressing, single master in synchronous I2C mode
-  UCI2CSA = slave_addr;        // Set the slave address
-  UCCTL1  = UCTR | UCSSEL_2;   // Use SMCLK, Transmitter
-  UCBR0   = 160;               // fSCL = SMCLK/12 = ~100kHz
-  UCBR1   = 0;
-  UCCTL0 &= ~UCSWRST;          // Clear the USCI reset
+  UCCTL1 |= UCSWRST;            // Put the USCI in reset
+  UCCTL0  = UCMST | UCSYNC | UCMODE_3; // 7-bit addressing, single master in synchronous I2C mode
+  UCCTL1  = UCSSEL_2 | UCSWRST; // Use SMCLK
+  UCBR0   = 12;                 // fSCL = SMCLK/12 = ~100kHz
+  UCBR1   = 0;                  //
+  UCI2CSA = slave_addr;         // Set the slave address
+  UCCTL1 &= ~UCSWRST;           // Clear the USCI reset
 }
 
 void i2c_write(byte data) {
-  UCCTL1 |= UCTXSTT;          // Send a START condition
-  while (!(UCIFG & UCTXIFG)); // Wait until the transmit buffer is ready (we can queue the byte to send)
+  UCCTL1 |= UCTR + UCTXSTT;   // Send a START condition
+  while (!(UCIFG & UCTXIFG)); // Wait until the transmit buffer is ready (the START condition has been
+                              // sent)
   UCTXBUF = data;             // Send the data
-  while (!(UCIFG & UCTXIFG)); // Wait until the transmit buffer is ready (we can prepare for a STOP)
+  while (!(UCIFG & UCTXIFG)); // Wait until the transmit buffer is ready (the data has been sent)
   UCCTL1 |= UCTXSTP;          // Send a STOP condition
+  while (UCCTL1 & UCTXSTP);   // Wait until the transmit buffer is ready (previous STOP condition have
+                              // been sent)
 }

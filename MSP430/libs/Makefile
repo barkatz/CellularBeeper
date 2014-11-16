@@ -1,4 +1,4 @@
-SOURCES  = libutils.c libuart.c libfifo.c libsoftuart.c liblcd.c
+SOURCES  = libutils.c libuart.c libfifo.c libsoftuart.c liblcd.c liblcdi2c.c libi2c.c
 INCLUDES = -I ../include
 MCU      = msp430g2553
 
