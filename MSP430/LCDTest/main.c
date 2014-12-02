@@ -40,7 +40,7 @@ int main() {
 
   // initialize the LCD module
   lcdi2c_init();
-  lcdi2c_puts("Hello, world!");
+  lcdi2c_puts("Bar Katz!");
   
   while(1);
 

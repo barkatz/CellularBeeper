@@ -58,7 +58,7 @@ void uart_putc(byte c) {
   _uart_putc(c);
 }
 
-void uart_puts(byte *msg) {
+void uart_puts(char *msg) {
   while (*msg)
     _uart_putc(*msg++);
 }

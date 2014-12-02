@@ -51,7 +51,7 @@ void uart_printf(char *format, ...)
         if(c == '%') {
             switch(c = *format++) {
                 case 's':                       // String
-                    uart_puts(va_arg(a, unsigned char*));
+                    uart_puts(va_arg(a, char*));
                     break;
                 case 'c':                       // Char
                     uart_putc(va_arg(a, int));

@@ -23,8 +23,8 @@ P2.0 --> Timer1_A, CCI1A (Timer 1, Comparator/Capture 1)
 */
 #define PRX_PORT         P2              
 #define PTX_PORT         P2
-#define PTX_BIT          BIT2              
-#define PRX_BIT          BIT0               
+#define PTX_BIT          BIT2           
+#define PRX_BIT          BIT0
 
 // Use Timer_A
 #define TR          TA1R               // Timer Register.
@@ -39,18 +39,6 @@ P2.0 --> Timer1_A, CCI1A (Timer 1, Comparator/Capture 1)
 #define RXCCTL      TA1CCTL0           // RX Comparator control.
 #define RXCCR       TA1CCR0            // RX Comparator register.
 #define RXINTID     TIMER1_A0_VECTOR   // Timer 1, Comparator 0
-
-/**************************************
-Defines 
-**************************************/
-#define _SET_PORT_BIT(PORT, TYPE, BIT) (PORT ## TYPE |= BIT)
-#define _CLR_PORT_BIT(PORT, TYPE, BIT) (PORT ## TYPE &= ~BIT)
-#define SET_PORT_BIT(PORT, TYPE, BIT) _SET_PORT_BIT(PORT, TYPE, BIT)
-#define CLR_PORT_BIT(PORT, TYPE, BIT) _CLR_PORT_BIT(PORT, TYPE, BIT)
-
-
-#define _READ_BIT(PORT, TYPE, BIT) (PORT ## TYPE & BIT)
-#define READ_BIT(PORT, TYPE, BIT)  _READ_BIT(PORT, TYPE, BIT) 
 
 /**************************************
 Local functions
@@ -243,7 +231,7 @@ __interrupt void softuart_tx_int_handler() {
 }
 
 
-void softuart_puts(byte *msg) {
+void softuart_puts(char *msg) {
   while (*msg)
     _softuart_putc(*msg++);
 }

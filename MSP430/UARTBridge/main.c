@@ -50,9 +50,9 @@ int main() {
 
 void do_proxy() {
   byte c;
-  
+    
   while(1) {
-    // // Read a char from PC, and write it to GSM module.
+    // Read a char from PC, and write it to GSM module.
     while (uart_getc(&c))
       softuart_putc(c);
     

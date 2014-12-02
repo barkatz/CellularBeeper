@@ -52,7 +52,8 @@ int lcdi2c_init() {
 
   backlight_on = 1;
 
-  // TODO should we sleep for the rise time of the module here?
+  // TODO find out how many ms we actually need to sleep here
+  ms_sleep(500);
 
   // Lower RS/RW -> We are writing control msgs.
   expand_4_bits(0, 0, 0);

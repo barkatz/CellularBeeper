@@ -1,0 +1,25 @@
+Choosing transistor to control the LCD power pin:
+=================================================
+
+Measured 28.6mA current consumption of the LCD screen (with max contrast).
+-> Take into account max current consumption of 50mA.
+
+LCD characteristics:
+1. Supply voltage: 5V
+2. Max current:    50mA
+
+C1815 characteristics:
+1. Ic/Ib = 10 (in saturation)
+2. Ic up to 150mA
+3. Vceo up to 50V
+4. For Ic = 50mA, Vbesat = 0.85
+
+MSP430 characteristics:
+1. With Vcc 3V, when outputting 5mA, Vgpio is 2.75V
+2. Looks like it's safe to put out 22mA, so we'll do our calculations as if to put out 10mA
+
+Resistor characteristics:
+1. We need Vgpio-Vbesat = 3V-0.85V = 2.15V to bo consumed by the resistor
+2. With 10mA going through the base, this means we need a resistor with 2.15V/10mA = 215 Ohm ~ 200 Ohm
+(Even in the case that the transistor has zero resistance, and Vgpio = Vcc, we will have a power consumption of only 3V/200Ohm = 15mA, which is OK).
+
