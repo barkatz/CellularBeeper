@@ -14,6 +14,9 @@ static void send_4_bits(uint8_t nibble, uint8_t rs);
 static void send_byte(uint8_t data, uint8_t rs, uint32_t ms);
 static void ms_sleep(uint32_t msec);
 
+/*
+
+*/
 static void expand_4_bits(uint8_t nibble, uint8_t rs, uint8_t en) {
   i2c_write((nibble << 4) |
             (backlight_on << BACKLIGHT_BIT) |
@@ -51,26 +54,25 @@ int lcdi2c_init() {
   int i;
 
   backlight_on = 1;
+  /*
+   Init sequence according to HD44780 datasheet, p46, fig 24.
+  */
 
   // TODO find out how many ms we actually need to sleep here
-  ms_sleep(500);
+  ms_sleep(100);
 
   // Lower RS/RW -> We are writing control msgs.
   expand_4_bits(0, 0, 0);
-  ms_sleep(10); // Just to make sure lines are down - can probably go off in prod.
+  ms_sleep(100); // Just to make sure lines are down - can probably go off in prod.
 
   /*
-   lcd module starts in 8 bit mode. 
-   We need to change the mode to 4bit, but there are only 4 DB lines...
-   The commands which changes to 4bit mode looks like: 0b001D NFXX. (D bit is 0 for 4 bit)
-   Our command looks like this:
-   0b0010 ZZZZ (we don't control the ZZZZ) but this changes us to 4 bits.
-   ugly hack but it works
+  Set DB4/5 three times.
   */
-  for (i = 0; i < 4; i++) {
-    send_4_bits(BIT1, 0);
+  for (i = 0; i < 3; i++) {
+    send_4_bits(BIT2 | BIT1, 0);
     ms_sleep(10);
   }
+  send_4_bits(BIT1, 0);
   
   // Function set:
   // DB5 -> must be 1

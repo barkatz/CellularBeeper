@@ -81,8 +81,8 @@ void init() {
   DCOCTL  = CALDCO;
 
   /* 9600Hz from 1MHZ, according to http://mspgcc.sourceforge.net/baudrate.html */
-  uart_init(UART_SRC_SMCLK, BITTIME, UCBRS0);
-  softuart_init(SOFTUART_SRC_SMCLK, BITTIME);
+  //uart_init(UART_SRC_SMCLK, BITTIME, UCBRS0);
+  //softuart_init(SOFTUART_SRC_SMCLK, BITTIME);
   __bis_SR_register(GIE);
 
   // power on the LCD screen
@@ -94,6 +94,8 @@ void init() {
 
   // initialize the LCD module
   lcdi2c_init();
+  lcdi2c_puts("There we go!");
+  while(1){}
 }
 
 void do_proxy(); 
