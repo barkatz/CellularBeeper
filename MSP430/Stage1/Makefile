@@ -4,7 +4,7 @@ DEFINES  =
 TARGET   = main.bin
 SOURCES  = main.c
 INCLUDES = -I../include
-LIBS     = -L../libs -li2c -llcdi2c -lutils -lsoftuart -luart -lfifo
+LIBS     = -L../libs -lsim900 -li2c -llcdi2c -lutils -lsoftuart -luart -lfifo -lclock
 MCU      = msp430g2553
 #######################################################################################
 CFLAGS   = -mmcu=$(MCU) -g -Wall -Wunused $(INCLUDES) $(DEFINES)

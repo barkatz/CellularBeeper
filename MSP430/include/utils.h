@@ -2,6 +2,7 @@
 #define _UTILS_H
 
 #include <stdlib.h>
+#include "misc.h"
 
 #ifndef NDEBUG
   #define TRACE(fmt, args...) \
@@ -20,5 +21,6 @@
         uart_printf("[-] %s: " fmt "\r\n", __FUNCTION__, ##args)
         
 void uart_printf(char *format, ...);
+byte startswith(char *s, char *prefix);
 
 #endif // _UTILS_H

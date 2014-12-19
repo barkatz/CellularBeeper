@@ -10,7 +10,7 @@ typedef enum softuart_clock_source_t {
 	SOFTUART_SRC_INCLK = 3
 } softuart_clock_source_t;
 
-void softuart_init(softuart_clock_source_t src, word _bit_time);
+void softuart_init(softuart_clock_source_t src, dword baudrate);
 void softuart_putc(byte c);
 void softuart_puts(char *msg);
 void softuart_write(byte *buf, byte count);

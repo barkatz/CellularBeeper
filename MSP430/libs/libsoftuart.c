@@ -3,6 +3,7 @@
 #include "misc.h"
 #include "fifo.h"
 #include "atomic.h"
+#include "clock.h"
 
 /*
 Software UART implementation using the MSP timers.
@@ -62,7 +63,7 @@ byte rx_bit_count;
 
 static word bit_time;
 
-void softuart_init(softuart_clock_source_t src, word _bit_time) {
+void softuart_init(softuart_clock_source_t src, dword baudrate) {
   // Reset the RX/TX state
   tx_bit_count = rx_bit_count = 0;
   fifo_init(&tx_softuart_fifo);
@@ -80,7 +81,7 @@ void softuart_init(softuart_clock_source_t src, word _bit_time) {
   CLR_PORT_BIT(PTX_PORT, SEL2,  PTX_BIT); // Clear SEL2 of PTX.
   
   // Keep bit time (how many CLK cycles per bit)
-  bit_time = _bit_time;
+  bit_time = clock_speed/baudrate;
 
   /*
   Prepare ctrl registers of timers.

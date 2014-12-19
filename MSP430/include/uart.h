@@ -9,7 +9,7 @@ typedef enum uart_clock_source_t {
 	UART_SRC_SMCLK = 2
 } uart_clock_source_t;
 
-int uart_init(uart_clock_source_t clk_src, word BR, byte MCTL);
+int uart_init(uart_clock_source_t clk_src, dword baudrate);
 void uart_putc(byte c);
 void uart_puts(char *msg);
 void uart_write(byte *buf, byte count);

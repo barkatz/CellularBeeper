@@ -2,7 +2,7 @@
 #include "lcd.h"
 #include "misc.h"
 #include "utils.h"
-
+#include "clock.h"
 
 static uint8_t x;
 static uint8_t y;
@@ -15,7 +15,6 @@ static void set_data_4bit(uint8_t nibble);
 Toggles the enable line to send our data.
 */
 static void toggle_enable(void);
-static void ms_sleep(uint8_t msec);
 static void do_write_op_4bit(uint8_t value, uint8_t rs_on, uint8_t msec);
 
 /*
@@ -81,13 +80,6 @@ static void toggle_enable(void) {
   CLR_E;
   SET_E;
   CLR_E;
-}
-
-static void ms_sleep(uint8_t msec) {
-  int i=0;
-  for (i=0; i<msec; i++) {
-    __delay_cycles(CYCLES_PER_MSEC);
-  }
 }
 
 static void set_data_4bit(uint8_t nibble) {

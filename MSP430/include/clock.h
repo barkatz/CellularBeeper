@@ -1,0 +1,18 @@
+#ifndef _CLOCK_H
+#define _CLOCK_H
+
+#include "misc.h"
+
+typedef enum clock_speed_t {
+  CLKSPEED_16MHZ,
+  CLKSPEED_12MHZ,
+  CLKSPEED_8MHZ,
+  CLKSPEED_1MHZ,
+} clock_speed_t;
+
+extern dword clock_speed;
+
+void clock_init(clock_speed_t);
+void ms_sleep(dword msec);
+
+#endif // _CLOCK_H

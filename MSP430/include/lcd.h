@@ -25,13 +25,6 @@ Define LCD pins layout.
 #define REGISTER_SELECT_PORT 	P2
 #define REGISTER_SELECT_BIT		BIT3
 
-
-/*
-Needed for mili sleep.
-*/
-#define CYCLES_PER_MSEC ((1*1000000)/1000)
-
-
 int lcd_init();
 void lcd_putc(char c);
 void lcd_puts(char *msg);

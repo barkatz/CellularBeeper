@@ -2,6 +2,7 @@
 #include "uart.h"
 #include "misc.h"
 #include "fifo.h"
+#include "clock.h"
 
 static inline byte _uart_try_putc(byte c);
 static inline void _uart_putc(byte c);
@@ -10,7 +11,14 @@ static inline void _uart_putc(byte c);
 static FIFO tx_uart_fifo;
 static FIFO rx_uart_fifo;
 
-int uart_init(uart_clock_source_t clk_src, word BR, byte MCTL) {
+int uart_init(uart_clock_source_t clk_src, dword baudrate) {
+
+  /* TODO
+     put the code from http://mspgcc.sourceforge.net/baudrate.html here.
+     our calculation is HORANI
+  */
+  word BR   = clock_speed/baudrate;
+  byte MCTL = UCBRS0;
   
   // USCI_A0 setup for the given parameters
   

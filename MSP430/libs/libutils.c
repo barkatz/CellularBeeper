@@ -83,3 +83,12 @@ bad_fmt:    uart_putc(c);
     }
     va_end(a);
 }
+
+byte startswith(char *s, char *prefix) {
+    while (*s == *prefix && *s && *prefix) {
+        s++;
+        prefix++;
+    }
+
+    return (*prefix == 0);
+}

@@ -19,6 +19,7 @@ void i2c_init(byte slave_addr) {
   UCCTL1 |= UCSWRST;            // Put the USCI in reset
   UCCTL0  = UCMST | UCSYNC | UCMODE_3; // 7-bit addressing, single master in synchronous I2C mode
   UCCTL1  = UCSSEL_2 | UCSWRST; // Use SMCLK
+  // TODO does this depend on the clock speed? if so -- find a generic way to do this
   UCBR0   = 12;                 // fSCL = SMCLK/12 = ~100kHz
   UCBR1   = 0;                  //
   UCI2CSA = slave_addr;         // Set the slave address
