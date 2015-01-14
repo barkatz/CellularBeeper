@@ -1,9 +1,9 @@
 #include <msp430.h>
-#include "lcdi2c.h"
-#include "misc.h"
-#include "utils.h"
-#include "i2c.h"
-#include "clock.h"
+#include <lcdi2c.h>
+#include <misc.h>
+#include <utils.h>
+#include <i2c.h>
+#include <clock.h>
 
 static uint8_t backlight_on;
 
@@ -79,7 +79,7 @@ int lcdi2c_init(uint8_t cols_, uint8_t rows_) {
   // DB1 -> Cursor 1->ON 0->OFF
   // DB0 -> Blinking Cursor 1->ON 0->OFF
   // Execution time is 37us
-  send_byte(BIT3 | BIT2 | BIT0, 0, 1);
+  send_byte(BIT3 | BIT2 , 0, 1);
   
   // Entry Mode Set
   // DB2 -> must be 1

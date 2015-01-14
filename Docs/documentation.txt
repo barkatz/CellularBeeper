@@ -5,3 +5,4 @@ Need to do once:
 3. configure sms modes:
    a. AT+CMGF=0 - set SMS to PDU mode (http://www.smartposition.nl/resources/sms_pdu.html)
    b. AT+CNMI=2,2,0,0,0 - make the SIM900 send us the SMS messages as they arrive
+   c. AT+CSCS="UCS2" – set the TE character set to UCS2

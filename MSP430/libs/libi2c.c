@@ -1,6 +1,6 @@
 #include <msp430.h>
-#include "misc.h"
-#include "i2c.h"
+#include <misc.h>
+#include <i2c.h>
 
 #define UCCTL0  UCB0CTL0
 #define UCCTL1  UCB0CTL1

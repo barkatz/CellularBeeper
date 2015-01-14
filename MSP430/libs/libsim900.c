@@ -1,7 +1,7 @@
-#include "sim900.h"
-#include "lcdi2c.h"
-#include "utils.h"
-#include "uart.h"
+#include <sim900.h>
+#include <lcdi2c.h>
+#include <utils.h>
+#include <uart.h>
 
 #define MAX_SIM900_LINE_LEN 64
 
@@ -139,7 +139,12 @@ static void trace_pbyte(byte *b) {
 }
 
 static void handle_rx_cmt_pdu(char *pdu, word pdu_len) {
-  // The PDU is parsed according to http://www.smartposition.nl/resources/sms_pdu.html
+  // The PDU is parsed according to:
+  // - http://www.smartposition.nl/resources/sms_pdu.html 
+  // - 3GPP TS 23.040 (Technical realization of the Short Message Service (SMS)):
+  //   http://www.etsi.org/deliver/etsi_ts/123000_123099/123040/12.02.00_60/ts_123040v120200p.pdf
+  // - 3GPP TS 23.038 (Alphabets and language-specific information):
+  //   http://www.etsi.org/deliver/etsi_ts/123000_123099/123038/12.00.00_60/ts_123038v120000p.pdf
 
   byte smsc_len;
   byte addr_len;
@@ -180,7 +185,7 @@ static void handle_rx_cmt_pdu(char *pdu, word pdu_len) {
   }
   lcdi2c_puts(": ");
 
-    // Verify the protocol identifier (WTF?)
+    // Verify that the protocol identifier is 'Default store and forward short message'
   if (*safe_consume(&pdu, &pdu_len, 1) != 0x00)
     ASSERT(0);
 
@@ -194,7 +199,20 @@ static void handle_rx_cmt_pdu(char *pdu, word pdu_len) {
 
     // Read the user data len
   data_len = *safe_consume(&pdu, &pdu_len, 1);
-    // TODO parse this
-  trash = *safe_consume(&pdu, &pdu_len, data_len);
+  lcdi2c_putc(nibble2hex(data_len>>4));
+  lcdi2c_putc(nibble2hex(data_len&0xf));
+  lcdi2c_newline();
+      // Verify that the data len is even (UCS-2 encoding)
+  if (data_len % 2 != 0)
+    ASSERT(0);
+
+    // Read the user data
+  addr = safe_consume(&pdu, &pdu_len, data_len);
+      // TODO parse this
+  for (i = 0; i < data_len; i++) {
+    lcdi2c_putc(nibble2hex(addr[i]>>4));
+    lcdi2c_putc(nibble2hex(addr[i]&0xf));
+    lcdi2c_putc(' ');
+  }
   lcdi2c_newline();
 }

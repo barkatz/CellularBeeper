@@ -1,8 +1,8 @@
 #include <msp430.h>
-#include "lcd.h"
-#include "misc.h"
-#include "utils.h"
-#include "clock.h"
+#include <lcd.h>
+#include <misc.h>
+#include <utils.h>
+#include <clock.h>
 
 static uint8_t x;
 static uint8_t y;

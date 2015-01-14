@@ -1,8 +1,8 @@
 #include <msp430.h>
-#include "uart.h"
-#include "misc.h"
-#include "fifo.h"
-#include "clock.h"
+#include <uart.h>
+#include <misc.h>
+#include <fifo.h>
+#include <clock.h>
 
 static inline byte _uart_try_putc(byte c);
 static inline void _uart_putc(byte c);

@@ -1,0 +1,130 @@
+
+Main screen:
+
+----------------------
+|BAT99           RX99|
+|        12:34       |
+|      01/02/03      |
+|  6 Msgs, 5 Calls   |
+----------------------
+BACK  DOWN   UP  ENTER
+ 
+Menu screen:
+
+----------------------
+|BAT99           RX99|
+|>Messages (16)      |
+| Calls (9)          |
+| Settings           |
+----------------------
+BACK  DOWN   UP  ENTER
+
+Messages screen:
+
+----------------------
+|BAT99   1/16    RX99|
+| 12:20 01/02/03     |
+| +972524338088      |
+| I missed you as... |
+----------------------
+BACK  DOWN   UP  ENTER
+
+Message actions screen:
+
+----------------------
+|BAT99   1/16    RX99|
+|>Delete             |
+|                    |
+|                    |
+----------------------
+BACK  DOWN   UP  ENTER
+ 
+Calls screen:
+
+----------------------
+|BAT99   1/9     RX99|
+|                    |
+| 12:19 01/02/03     |
+| +972524338088      |
+----------------------
+BACK  DOWN   UP  ENTER
+ 
+Call actions screen:
+
+----------------------
+|BAT99   1/9     RX99|
+|>Delete             |
+|                    |
+|                    |
+----------------------
+BACK  DOWN   UP  ENTER
+
+Settings screen:
+
+----------------------
+|BAT99           RX99|
+|>Delete messages    |
+| Delete calls       |
+| Set time           |
+----------------------
+BACK  DOWN   UP  ENTER
+
+(brightness, time to sleep)
+
+uint16_t top_line_index;
+uint16_t cursor_index;
+char lines[20][3];
+Context* context;
+
+struct Screen {
+    Callback *back;
+    Callback *up;
+    Callback *down;
+    Callback *enter;
+};
+
+void UpdateScreen
+
+Screen MainScreen = {
+                   .back = 0,
+                   .up = 0,
+                   .down = 0,
+                   .enter = &HandleMainEnter, // show MenuScreen
+                   .num_lines = 0,
+                  };
+
+Screen MenuScreen = {
+                   .back = &HandleMenuBack, // show MainScreen
+                   .up &HandleMenuUp, // move the cursor up
+                   .down &HandleMenuDown, // move the cursor down
+                   .enter &HandleMenuEnter, // do the selected action
+                  };
+
+Screen MessagesScreen = {
+                         .back = &HandleMessagesBack, // show MenuScreen
+                         .up &HandleMessagesUp, // move the cursor up
+                         .down &HandleMessagesDown, // move the cursor down
+                         .enter &HandleMessagesEnter, // show the selected message
+                        };
+
+Screen MessageItemScreen = {
+                            .back = &HandleMessageItemBack, // show MessagesScreen
+                            .up = &HandleMessageItemUp
+}
+
+Main
+    Menu
+        Messages
+            [Message Items]
+                Message Actions
+                    Delete
+        Calls
+            [Call Items]
+                Call Actions
+                    Delete
+        Settings
+            Delete messages
+            Delete calls
+            Set time
+            Brightness
+            Time to sleep

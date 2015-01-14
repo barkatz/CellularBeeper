@@ -2,8 +2,8 @@ DEFINES  =
 
 #######################################################################################
 TARGET   = main.bin
-SOURCES  = main.c
-INCLUDES = -I../include
+SOURCES  = main.c tui/tui.c tui/main_screen.c tui/menu_screen.c
+INCLUDES = -I../include -I.
 LIBS     = -L../libs -lsim900 -li2c -llcdi2c -lutils -lsoftuart -luart -lfifo -lclock
 MCU      = msp430g2553
 #######################################################################################

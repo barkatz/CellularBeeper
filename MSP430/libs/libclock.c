@@ -1,5 +1,5 @@
 #include <msp430.h>
-#include "clock.h"
+#include <clock.h>
 
 dword clock_speed;
 

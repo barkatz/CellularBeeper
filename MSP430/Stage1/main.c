@@ -1,11 +1,12 @@
 #include <msp430.h>
-#include "i2c.h"
-#include "lcdi2c.h"
-#include "softuart.h"
-#include "uart.h"
-#include "misc.h"
-#include "clock.h"
-#include "sim900.h"
+#include <i2c.h>
+#include <lcdi2c.h>
+#include <softuart.h>
+#include <uart.h>
+#include <misc.h>
+#include <clock.h>
+#include <sim900.h>
+#include <tui/tui.h>
 
 // The base of the transistor controling the Vcc of the LCD module is connected to our P2.3 pin
 #define PLCDPWRPIN_PORT         P2              
@@ -40,15 +41,11 @@ void init() {
   softuart_init(SOFTUART_SRC_SMCLK, 9600);
   __bis_SR_register(GIE);
 
-  // power on the LCD screen
+  // power-on the LCD screen
   lcd_power_init();
   lcd_power_set(1);
 
-  // initialize the I2C library
-  i2c_init(LCD_I2C_ADDR);
-
-  // initialize the LCD module
-  lcdi2c_init(20, 4);
+  tui_init();
 }
 
 void do_proxy(); 
@@ -56,10 +53,11 @@ void do_work();
 
 int main() {
   init();
-  lcdi2c_puts("Ready... ");
-  lcdi2c_return_home();
-  //do_proxy();
-  do_work();
+  TRACE("Started...");
+  //lcdi2c_puts("Ready... ");
+  //lcdi2c_return_home();
+  do_proxy();
+  //do_work();
   return 0;
 }
 
@@ -81,7 +79,22 @@ void do_proxy() {
     
     // Read a char from PC
     while (softuart_getc(&c)) {
-      uart_putc(c);
+      softuart_putc(c);
+      switch (c) {
+        case 'j':
+          tui_handle_up();
+          break;
+        case 'k':
+          tui_handle_down();
+          break;
+        case 'h':
+          tui_handle_back();
+          break;
+        case 'l':
+          tui_handle_enter();
+          break;
+      }
+      //uart_putc(c);
     }
   }
 }

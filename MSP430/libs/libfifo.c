@@ -1,6 +1,6 @@
-#include "misc.h"
-#include "fifo.h"
-#include "atomic.h"
+#include <misc.h>
+#include <fifo.h>
+#include <atomic.h>
 
 void fifo_init(FIFO *f) {
   f->read_idx = f->write_idx = f->byte_count = 0;

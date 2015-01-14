@@ -1,9 +1,9 @@
 #include <msp430.h>
-#include "softuart.h"
-#include "misc.h"
-#include "fifo.h"
-#include "atomic.h"
-#include "clock.h"
+#include <softuart.h>
+#include <misc.h>
+#include <fifo.h>
+#include <atomic.h>
+#include <clock.h>
 
 /*
 Software UART implementation using the MSP timers.

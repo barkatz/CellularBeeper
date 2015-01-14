@@ -1,6 +1,7 @@
 #include <stdarg.h>
-#include "utils.h"
-#include "uart.h"
+#include <utils.h>
+#include <uart.h>
+#include <softuart.h>
 
 static const unsigned long dv[] = {
 //  4294967296      // 32 bit unsigned max
@@ -27,19 +28,19 @@ static void xtoa(unsigned long x, const unsigned long *dp)
             d = *dp++;
             c = '0';
             while(x >= d) ++c, x -= d;
-            uart_putc(c);
+            trace_putc(c);
         } while(!(d & 1));
     } else
-        uart_putc('0');
+        trace_putc('0');
 }
 
 static void puth(unsigned n)
 {
     static const char hex[16] = { '0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-    uart_putc(hex[n & 15]);
+    trace_putc(hex[n & 15]);
 }
 
-void uart_printf(char *format, ...)
+void trace_printf(char *format, ...)
 {
     char c;
     int i;
@@ -51,21 +52,21 @@ void uart_printf(char *format, ...)
         if(c == '%') {
             switch(c = *format++) {
                 case 's':                       // String
-                    uart_puts(va_arg(a, char*));
+                    trace_puts(va_arg(a, char*));
                     break;
                 case 'c':                       // Char
-                    uart_putc(va_arg(a, int));
+                    trace_putc(va_arg(a, int));
                     break;
                 case 'i':                       // 16 bit Integer
                 case 'u':                       // 16 bit Unsigned
                     i = va_arg(a, int);
-                    if(c == 'i' && i < 0) i = -i, uart_putc('-');
+                    if(c == 'i' && i < 0) i = -i, trace_putc('-');
                     xtoa((unsigned)i, dv + 5);
                     break;
                 case 'l':                       // 32 bit Long
                 case 'n':                       // 32 bit uNsigned loNg
                     n = va_arg(a, long);
-                    if(c == 'l' &&  n < 0) n = -n, uart_putc('-');
+                    if(c == 'l' &&  n < 0) n = -n, trace_putc('-');
                     xtoa((unsigned long)n, dv);
                     break;
                 case 'x':                       // 16 bit heXadecimal
@@ -79,7 +80,7 @@ void uart_printf(char *format, ...)
                 default: goto bad_fmt;
             }
         } else
-bad_fmt:    uart_putc(c);
+bad_fmt:    trace_putc(c);
     }
     va_end(a);
 }
