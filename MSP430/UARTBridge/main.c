@@ -21,6 +21,8 @@ int main() {
   uart_init(UART_SRC_SMCLK, 9600);
   softuart_init(SOFTUART_SRC_SMCLK, 9600);
   __bis_SR_register(GIE);
+
+  softuart_puts("UART Bridge:\r\n");
   
   do_proxy();
   return 0;

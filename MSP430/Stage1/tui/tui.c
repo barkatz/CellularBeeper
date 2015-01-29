@@ -44,7 +44,7 @@ void tui_init()
     lcdi2c_init(SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // initialize the main screen
-    main_screen_init();
+    //main_screen_init();
 }
 
 void tui_handle_back()

@@ -54,10 +54,10 @@ void do_work();
 int main() {
   init();
   TRACE("Started...");
-  //lcdi2c_puts("Ready... ");
-  //lcdi2c_return_home();
-  do_proxy();
-  //do_work();
+  lcdi2c_return_home();
+  //do_proxy();
+
+  do_work();
   return 0;
 }
 

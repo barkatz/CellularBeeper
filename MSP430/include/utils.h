@@ -4,14 +4,29 @@
 #include <stdlib.h>
 #include "misc.h"
 
-#define TRACE_SOFTUART
+//#define TRACE_SOFTUART
+//#define TRACE_UART
+#define TRACE_LCD
 
-#ifdef TRACE_SOFTUART
-    #define trace_putc softuart_putc
-    #define trace_puts softuart_puts
+#if defined(TRACE_SOFTUART)
+    #include <softuart.h>
+    #define trace_clear() 0
+    #define trace_putc  softuart_putc
+    #define trace_puts  softuart_puts
+#elif defined(TRACE_UART)
+    #include <uart.h>
+    #define trace_clear() 0
+    #define trace_putc  uart_putc
+    #define trace_puts  uart_puts
+#elif defined(TRACE_LCD)
+    #include <lcdi2c.h>
+    #define trace_clear lcdi2c_clear
+    #define trace_putc  lcdi2c_putc
+    #define trace_puts  lcdi2c_puts
 #else
-    #define trace_putc uart_putc
-    #define trace_puts uart_puts
+    #define trace_clear() 0
+    #define trace_putc (void)(x)
+    #define trace_puts (void)(x)
 #endif
 
 #ifndef NDEBUG
@@ -22,8 +37,9 @@
 #endif
 
 #define ASSERT(expr) ((void)((expr) ? 0 : \
-                     (trace_printf("[!] %s: Assertion failed, file %s, \
-                                  line %u\r\n", __FUNCTION__, \
+                     (trace_clear(), \
+                     trace_printf("[!] %s: Assertion failed, file %s, " \
+                                  "line %u\r\n", __FUNCTION__, \
                                   __FILE__, __LINE__), \
                       abort () )))
 

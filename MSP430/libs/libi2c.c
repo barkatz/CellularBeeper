@@ -15,6 +15,8 @@
 void i2c_init(byte slave_addr) {
   P1SEL  |= BIT6 + BIT7;       // Set P1.6 and P1.7 to USCI_B0
   P1SEL2 |= BIT6 + BIT7;       //
+  P1DIR  |= BIT0;              // Waiting LED P1.0
+  P1OUT  &= BIT0;                 //   Turn it off
 
   UCCTL1 |= UCSWRST;            // Put the USCI in reset
   UCCTL0  = UCMST | UCSYNC | UCMODE_3; // 7-bit addressing, single master in synchronous I2C mode
@@ -28,6 +30,7 @@ void i2c_init(byte slave_addr) {
 
 void i2c_write(byte data) {
   UCCTL1 |= UCTR + UCTXSTT;   // Send a START condition
+  P1OUT |= BIT0;
   while (!(UCIFG & UCTXIFG)); // Wait until the transmit buffer is ready (the START condition has been
                               // sent)
   UCTXBUF = data;             // Send the data
@@ -35,4 +38,5 @@ void i2c_write(byte data) {
   UCCTL1 |= UCTXSTP;          // Send a STOP condition
   while (UCCTL1 & UCTXSTP);   // Wait until the transmit buffer is ready (previous STOP condition have
                               // been sent)
+  P1OUT &= ~BIT0;
 }

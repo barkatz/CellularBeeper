@@ -1,7 +1,5 @@
 #include <stdarg.h>
 #include <utils.h>
-#include <uart.h>
-#include <softuart.h>
 
 static const unsigned long dv[] = {
 //  4294967296      // 32 bit unsigned max
