@@ -1,6 +1,7 @@
-SOURCES  = libutils.c libuart.c libfifo.c libsoftuart.c liblcd.c liblcdi2c.c libi2c.c libclock.c libsim900.c
+#SOURCES  = libutils.c libuart.c libfifo.c libsoftuart.c liblcd.c liblcdi2c.c libi2c.c libclock.c libsim900.c
+SOURCES  = libutils.c libuart.c libfifo.c libclock.c
 INCLUDES = -I ../include
-MCU      = msp430g2553
+MCU      = msp430f5529
 
 #######################################################################################
 CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused -std=c99 $(INCLUDES)

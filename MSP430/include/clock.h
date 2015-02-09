@@ -5,8 +5,6 @@
 
 typedef enum clock_speed_t {
   CLKSPEED_16MHZ,
-  CLKSPEED_12MHZ,
-  CLKSPEED_8MHZ,
   CLKSPEED_1MHZ,
 } clock_speed_t;
 
