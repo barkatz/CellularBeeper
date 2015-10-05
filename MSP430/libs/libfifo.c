@@ -10,7 +10,7 @@ inline byte fifo_try_put(FIFO *q, byte c, byte is_interrupt) {
   if (q->byte_count >= FIFO_BUF_SIZE) {
     return 0;
   }
-    
+
   q->buf[q->write_idx] = c;
   q->write_idx = (q->write_idx+1)%FIFO_BUF_SIZE;
 
@@ -24,12 +24,12 @@ inline byte fifo_try_put(FIFO *q, byte c, byte is_interrupt) {
 
 inline byte fifo_try_get(FIFO *q, byte *c, byte is_interrupt) {
   if (q->byte_count == 0) {
-  	return 0;
+    return 0;
   }
 
   *c = q->buf[q->read_idx];
   q->read_idx = (q->read_idx+1)%FIFO_BUF_SIZE;
-  
+
   if (is_interrupt)
       q->byte_count--;
   else

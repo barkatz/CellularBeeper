@@ -40,13 +40,21 @@
 /*
 * This header originated from an implementation for the AVR microcontroller. It has been ported to
 * MSP430 and has identical functionality.
-* 
+*
 * \note The macros in this header file require the ISO/IEC 9899:1999 ("ISO C99") feature of for loop
 *     variables that are declared inside the for loop itself.  For that reason, this header file can
 *     only be used if the standard level of the compiler (option --std=) is set to either \c c99 or
 *     \c gnu99.
-* 
+*
 */
+
+static inline __attribute__((always_inline))
+unsigned int __read_status_register( void){
+    unsigned int xReturn;
+    __asm volatile( "MOV  R2, %0"
+                : "=r"  (xReturn)); // output parameters
+    return xReturn;
+}
 
 static __inline__ byte __iSeiRetVal(void){
     __enable_interrupt();
@@ -79,11 +87,11 @@ static __inline__ void __iRestore(const byte *__s){
     __asm__ volatile ("" ::: "memory");
 }
 
-/* 
+/*
  * Creates a block of code that is guaranteed to be executed atomically. Upon entering the block the
- * GIE flag in the status register (SR) is disabled, and re-enabled upon exiting the block from any 
+ * GIE flag in the status register (SR) is disabled, and re-enabled upon exiting the block from any
  * exit path.
- * 
+ *
  * Two possible macro parameters are permitted, ATOMIC_RESTORESTATE and ATOMIC_FORCEON.
  */
 #define ATOMIC_BLOCK(type) for ( type, __ToDo = __iCliRetVal(); \
@@ -91,7 +99,7 @@ static __inline__ void __iRestore(const byte *__s){
 
 
 /*
- * This is a possible parameter for ATOMIC_BLOCK. When used, it will cause the ATOMIC_BLOCK to 
+ * This is a possible parameter for ATOMIC_BLOCK. When used, it will cause the ATOMIC_BLOCK to
  * restore the previous state of the status register, saved before the GIE flag bit was disabled.
  * The net effect of this is to make the ATOMIC_BLOCK's contents guaranteed atomic, without changing
  * the state of the GIE flag when execution of the block completes.
@@ -99,24 +107,24 @@ static __inline__ void __iRestore(const byte *__s){
 #define ATOMIC_RESTORESTATE byte sreg_save \
     __attribute__((__cleanup__(__iRestore))) = __read_status_register()
 
-/* 
+/*
  * This is a possible parameter for ATOMIC_BLOCK. When used, it will cause the ATOMIC_BLOCK to force
  * the state of the status register on exit, enabling the GIE flag bit.
- * 
+ *
  * Care should be taken that ATOMIC_FORCEON is only used when it is known that interrupts are
- * enabled before the block's execution or when the side effects of enabling global interrupts at 
+ * enabled before the block's execution or when the side effects of enabling global interrupts at
  * the block's completion are known and understood.
  */
 #define ATOMIC_FORCEON byte sreg_save \
     __attribute__((__cleanup__(__iSeiParam))) = 0
 
 /*
- * Creates a block of code that is executed non-atomically. Upon entering the block the GIE flag in 
+ * Creates a block of code that is executed non-atomically. Upon entering the block the GIE flag in
  * the status register is enabled, and disabled upon exiting the block from any exit path. This is
  * useful when nested inside ATOMIC_BLOCK sections, allowing for non-atomic execution of small
  * blocks of code while maintaining the atomic access of the other sections of the parent
  * ATOMIC_BLOCK.
- * 
+ *
  * Two possible macro parameters are permitted, NONATOMIC_RESTORESTATE and NONATOMIC_FORCEOFF.
  */
 #define NONATOMIC_BLOCK(type) for ( type, __ToDo = __iSeiRetVal(); \
@@ -134,7 +142,7 @@ static __inline__ void __iRestore(const byte *__s){
 /*
  * This is a possible parameter for NONATOMIC_BLOCK. When used, it will cause the NONATOMIC_BLOCK to
  * force the state of the status register on exit, disabling the GIE flag bit.
- * 
+ *
  * Care should be taken that NONATOMIC_FORCEOFF is only used when it is known that interrupts are
  * disabled before the block's execution or when the side effects of disabling global interrupts at
  * the block's completion are known and understood.

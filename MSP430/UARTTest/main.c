@@ -1,11 +1,9 @@
 #include <msp430.h>
 
-#include "misc.h"
-#include "utils.h"
 #include "uart.h"
 #include "clock.h"
 
-void do_proxy(); 
+#include "driverlib.h"
 
 int main() {
 #ifdef USE_WDT
@@ -16,23 +14,15 @@ int main() {
 
   clock_init(CLKSPEED_1MHZ);
 
-  P1DIR |= BIT6;  // Set P1.6 to GPIO OUT
-  P1DIR |= BIT0;  // Set P1.0 to GPIO OUT
-
-  /*while(1)
-  {
-    P1OUT ^= BIT6;
-    __delay_cycles(1000);
-  }*/
-
-  uart_init(UART_SRC_SMCLK, 9600);
+  // Initialize UART for 9600 bps
+  uart_init(UART_SRC_SMCLK, 104, UCBRF0, UCBRS1);
   __bis_SR_register(GIE);
 
-  while(1)
-  {
+  unsigned int i;
+  while (1) {
     uart_putc('A');
-    P1OUT ^= BIT0;
-    __delay_cycles(20000);
+    for (i=0; i < 100; i++)
+      __delay_cycles(1024);
   }
 
   return 0;

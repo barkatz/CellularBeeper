@@ -2,7 +2,6 @@
 #include <uart.h>
 #include <misc.h>
 #include <fifo.h>
-#include <clock.h>
 
 static inline byte _uart_try_putc(byte c);
 static inline void _uart_putc(byte c);
@@ -11,31 +10,33 @@ static inline void _uart_putc(byte c);
 static FIFO tx_uart_fifo;
 static FIFO rx_uart_fifo;
 
-int uart_init(uart_clock_source_t clk_src, dword baudrate) {
+int uart_init(uart_clock_source_t clk_src, word clk_rescaler, byte first_modulation, byte second_modulation) {
+#ifndef USE_DRIVERLIB
+  P4SEL     |= BIT4 + BIT5;        // set P4.4 to TX and P4.5 to RX
+#else
+  GPIO_setAsPeripheralModuleFunctionOutputPin(GPIO_PORT_P4, GPIO_PIN4);
+  GPIO_setAsPeripheralModuleFunctionInputPin(GPIO_PORT_P4, GPIO_PIN5);
+#endif
 
-  /* TODO
-     put the code from http://mspgcc.sourceforge.net/baudrate.html here.
-     our calculation is HORANI
-  */
-  word BR   = clock_speed/baudrate;
-  byte MCTL = UCBRS0;
-  
-  // USCI_A0 setup for the given parameters
-  
-  UCA0CTL1 |= UCSWRST;            // Stop USCI
+  // TODO make a version for USE_DRIVERLIB
 
-  P3SEL     |= BIT3 + BIT4;        // set P3.3 to TX and P3.4 to RX
-  UCA0CTL1  |= clk_src << 6;       // Choose CLK source
+  // USCI_A1 setup for the given parameters
+  UCA1CTL1   = UCSWRST;            // Stop USCI
 
-  UCA0BR0   = BR & 0xff;
-  UCA0BR1   = BR >> 8;
-  UCA0MCTL  = MCTL;
+  UCA1CTL0   = 0;
 
-  UCA0CTL1 &= ~UCSWRST;           // Start USCI
+  UCA1CTL1  |= clk_src << 6;       // Choose CLK source
+
+  UCA1BR0    = clk_rescaler & 0xff;
+  UCA1BR1    = clk_rescaler >> 16;
+
+  UCA1MCTL   = first_modulation | second_modulation;
+
+  UCA1CTL1 &= ~UCSWRST;           // Start USCI
 
   fifo_init(&tx_uart_fifo);
   fifo_init(&rx_uart_fifo);
-  UCA0IE   |= UCRXIE;             // Enable RX interrupt
+  UCA1IE   |= UCRXIE;             // Enable RX interrupt
 
   return 0;
 }
@@ -50,7 +51,7 @@ byte uart_getc(byte *c) {
 
 static inline byte _uart_try_putc(byte c) {
   if (fifo_try_put(&tx_uart_fifo, c, 0)) {
-    UCA0IE |= UCTXIE; // enable TX interrupt
+    UCA1IE |= UCTXIE; // enable TX interrupt
     return 1;
   } else {
     return 0;
@@ -79,26 +80,39 @@ byte uart_read(byte *buf, byte count) {
   byte *orig_buf = buf;
 
   while(fifo_try_get(&rx_uart_fifo, buf++, 0));
-  
+
   return (byte)(buf-orig_buf-1);
 }
 
-#pragma vector=USCI_A0_VECTOR
-__interrupt void USCI0RX_ISR() {
+#if defined(__TI_COMPILER_VERSION__) || defined(__IAR_SYSTEMS_ICC__)
+#pragma vector=USCI_A1_VECTOR
+__interrupt
+#elif defined(__GNUC__)
+__attribute__((interrupt(USCI_A1_VECTOR)))
+#endif
+void USCI_A1_ISR(void) {
   byte byte_ready, c;
 
-  if (UCA0IFG & UCRXIFG) {
-    // the received byte is in UCA0RXBUF
-    fifo_try_put(&rx_uart_fifo, UCA0RXBUF, 1);
-  }
-
-  if (UCA0IFG & UCTXIFG) {
-    byte_ready = fifo_try_get(&tx_uart_fifo, &c, 1);
-    if (byte_ready) {
-      // the byte to transmit is to be put in UCA0TXBUF
-      UCA0TXBUF = c;
-    } else {
-      UCA0IE &= ~UCTXIE; // disable TX interrupt
-    }
+  switch (UCA1IV) {
+    case USCI_NONE:
+      break;
+    case USCI_UCRXIFG:
+      fifo_try_put(&rx_uart_fifo, UCA1RXBUF, 1);
+      break;
+    case USCI_UCTXIFG:
+      byte_ready = fifo_try_get(&tx_uart_fifo, &c, 1);
+      if (byte_ready) {
+        P1OUT ^= BIT0;
+        // the byte to transmit is to be put in UCA1TXBUF
+        UCA1TXBUF = c;
+        // this clears UCTXIFG
+      } else {
+        P4OUT ^= ~BIT7;
+        UCA1IE &= ~UCTXIE;  // disable TX interrupt
+        UCA1IFG |= UCTXIFG; // generate pending TX interrupt
+      }
+      break;
+    default:
+      break;
   }
 }

@@ -7,7 +7,7 @@
 #include "uart.h"
 #include "clock.h"
 
-void do_proxy(); 
+void do_proxy();
 
 int main() {
 #ifdef USE_WDT
@@ -23,19 +23,19 @@ int main() {
   __bis_SR_register(GIE);
 
   softuart_puts("UART Bridge:\r\n");
-  
+
   do_proxy();
   return 0;
 }
 
 void do_proxy() {
   byte c;
-    
+
   while(1) {
     // Read a char from PC, and write it to GSM module.
     while (uart_getc(&c))
       softuart_putc(c);
-    
+
     // Read a char from GSM module and write to to PC
      while (softuart_getc(&c))
         uart_putc(c);

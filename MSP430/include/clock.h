@@ -3,6 +3,8 @@
 
 #include "misc.h"
 
+#define XT1_FREQ 32768
+
 typedef enum clock_speed_t {
   CLKSPEED_16MHZ,
   CLKSPEED_1MHZ,

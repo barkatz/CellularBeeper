@@ -64,7 +64,7 @@ int lcdi2c_init(uint8_t cols_, uint8_t rows_) {
     ms_sleep(5); // According to the datasheet we need to wait 4.1ms, 100us, 0ms
   }
   send_4_bits(BIT1, 0);
-  
+
   // Function Set
   // DB5 -> must be 1
   // DB4 -> DL, interface data length 1-> 8 bit, 0-> 4 bit.
@@ -72,7 +72,7 @@ int lcdi2c_init(uint8_t cols_, uint8_t rows_) {
   // DB2 -> F, Font type -> 5x11 or 5x8.
   // Execution time is 37us
   send_byte(BIT5 | BIT3 | BIT2, 0, 1);
-  
+
   // Display ON/OFF Control
   // DB3 -> must be 1.
   // DB2 -> Display 1->ON 0->OFF
@@ -80,7 +80,7 @@ int lcdi2c_init(uint8_t cols_, uint8_t rows_) {
   // DB0 -> Blinking Cursor 1->ON 0->OFF
   // Execution time is 37us
   send_byte(BIT3 | BIT2 , 0, 1);
-  
+
   // Entry Mode Set
   // DB2 -> must be 1
   // DB1 -> I/D - assign cursor moving direction - 1->Increment, 0->Decrement
@@ -119,26 +119,26 @@ void lcdi2c_putc(char c) {
   } else if (c == '\n') {
     lcdi2c_newline();
   } else {
-    send_byte(c, 1, 1); 
+    send_byte(c, 1, 1);
     x++;
     if (x >= cols)
       lcdi2c_newline();
   }
 }
 
-void lcdi2c_clear() {
+void lcdi2c_clear(void) {
   // Execution time is 1.53ms
-  send_byte(BIT0, 0, 2);  
+  send_byte(BIT0, 0, 2);
   x = y =  0;
 }
 
-void lcdi2c_return_home() {
+void lcdi2c_return_home(void) {
   // Execution time is 1.52ms
-  send_byte(BIT1, 0, 2);  
+  send_byte(BIT1, 0, 2);
   x = 0;
 }
 
-void lcdi2c_newline() {
+void lcdi2c_newline(void) {
   x = 0;
   y = (y + 1) % rows;
   lcdi2c_set_pos(x,y);

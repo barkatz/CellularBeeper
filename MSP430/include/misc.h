@@ -1,6 +1,8 @@
 #ifndef _MISC_H
 #define _MISC_H
 
+#include <stdint.h>
+
 typedef unsigned char byte;
 typedef unsigned int  word;
 typedef unsigned long dword;
@@ -17,8 +19,8 @@ typedef long          sdword;
 #define CLR_PORT_BIT(PORT, TYPE, BIT) _CLR_PORT_BIT(PORT, TYPE, BIT)
 
 #define _READ_BIT(PORT, TYPE, BIT) (PORT ## TYPE & BIT)
-#define READ_BIT(PORT, TYPE, BIT)  _READ_BIT(PORT, TYPE, BIT) 
+#define READ_BIT(PORT, TYPE, BIT)  _READ_BIT(PORT, TYPE, BIT)
 #define _WRITE_BIT(PORT, TYPE, BIT) (PORT ## TYPE |= BIT)
-#define WRITE_BIT(PORT, TYPE, BIT)  _WRITE_BIT(PORT, TYPE, BIT) 
+#define WRITE_BIT(PORT, TYPE, BIT)  _WRITE_BIT(PORT, TYPE, BIT)
 
 #endif // _MISC_H

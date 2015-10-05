@@ -45,7 +45,7 @@
 
 #define ERROR(fmt, args...) \
         trace_printf("[-] %s: " fmt "\r\n", __FUNCTION__, ##args)
-        
+
 void trace_printf(char *format, ...);
 byte startswith(char *s, char *prefix);
 
